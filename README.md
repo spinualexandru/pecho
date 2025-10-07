@@ -4,6 +4,8 @@
 
 Personal Echo is an Electron desktop app that records meetings, transcribes them offline using OpenAI's Whisper, and generates intelligent summaries with your local Ollama instance.
 
+[demo.webm](https://github.com/user-attachments/assets/d7e70697-a66e-4f7d-be8e-8b475dea7329)
+
 ## Features
 
 - **Dual Audio Capture** - Records both your microphone and system audio (perfect for video calls)
