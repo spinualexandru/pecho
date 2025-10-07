@@ -1,4 +1,8 @@
 import { Ollama } from "ollama";
+import {
+  getSummaryLanguage,
+  getLanguageName,
+} from "@/helpers/language-helpers";
 
 const ollama = new Ollama({ host: "http://localhost:11434" });
 
@@ -13,7 +17,7 @@ export async function getAvailableModels(): Promise<OllamaModel[]> {
     const response = await ollama.list();
     return response.models.map((model) => ({
       name: model.name,
-      modified_at: model.modified_at,
+      modified_at: model.modified_at.toString(),
       size: model.size,
     }));
   } catch (error) {
@@ -29,17 +33,18 @@ export async function summarizeTranscript(
   model: string = "llama3.2",
 ): Promise<string> {
   try {
+    const summaryLanguage = getLanguageName(getSummaryLanguage());
+
     const response = await ollama.chat({
       model: model,
       messages: [
         {
           role: "system",
-          content:
-            "You are a helpful assistant that creates concise, structured summaries of meeting transcripts. Focus on key points, action items, and decisions made.",
+          content: `You are a helpful assistant that creates concise, structured summaries of meeting transcripts. Focus on key points, action items, and decisions made. Please respond in ${summaryLanguage}.`,
         },
         {
           role: "user",
-          content: `Please summarize this meeting transcript:\n\n${transcript}`,
+          content: `Please summarize this meeting transcript in ${summaryLanguage}:\n\n${transcript}`,
         },
       ],
       stream: false,

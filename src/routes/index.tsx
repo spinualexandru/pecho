@@ -51,14 +51,15 @@ function HomePage() {
     error,
     isTranscribing,
   } = useRecording();
-
+  console.log("Hi", error);
   const {
     selectedModel,
     availableModels,
     isLoading: isLoadingModels,
     selectModel,
+    error: modelError,
   } = useModelSelection();
-
+  console.log(modelError);
   const [summary, setSummary] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingError, setProcessingError] = useState<string | null>(null);
@@ -191,7 +192,6 @@ function HomePage() {
                   onValueChange={selectModel}
                   disabled={isLoadingModels || availableModels.length === 0}
                   dir="ltr"
-
                 >
                   <SelectTrigger className="w-64">
                     <SelectValue
@@ -233,10 +233,17 @@ function HomePage() {
                   Manual Input
                 </Button>
               </div>
-              <p className="text-muted-foreground max-w-md text-center text-xs">
-                Voice recording captures both your microphone and system audio
-                (meeting participants)
-              </p>
+              {!modelError && (
+                <p className="text-muted-foreground max-w-md text-center text-xs">
+                  Voice recording captures both your microphone and system audio
+                  (meeting participants)
+                </p>
+              )}
+              {!!modelError && (
+                <p className="max-w-md text-center text-xs text-red-400">
+                  {modelError}
+                </p>
+              )}
             </div>
             {error && (
               <div className="text-destructive mt-4 flex items-center gap-2">
