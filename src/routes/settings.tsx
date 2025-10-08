@@ -80,8 +80,8 @@ function Settings() {
   return (
     <div className="container mx-auto max-w-2xl p-6">
       <h1 className="mb-6 text-3xl font-bold">Settings</h1>
-      <ScrollArea className="h-[480px] max-h-screen w-full rounded-md border p-4">
-        <Card>
+      <ScrollArea className="flex h-[480px] max-h-screen w-full flex-col rounded-md border p-4">
+        <Card className="mb-4">
           <CardHeader>
             <CardTitle>Appearance</CardTitle>
             <CardDescription>
@@ -105,7 +105,7 @@ function Settings() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="mb-4">
           <CardHeader>
             <CardTitle>Transcription</CardTitle>
             <CardDescription>
@@ -147,7 +147,7 @@ function Settings() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="mb-4">
           <CardHeader>
             <CardTitle>Languages</CardTitle>
             <CardDescription>

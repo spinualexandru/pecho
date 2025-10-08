@@ -30,8 +30,18 @@ interface RecordingContext {
   getOllamaModels: () => Promise<OllamaModel[]>;
 }
 
+interface GPUInfo {
+  vram: number; // VRAM in bytes
+  name: string;
+}
+
+interface SystemInfoContext {
+  getGPUVRAM: () => Promise<GPUInfo | null>;
+}
+
 declare interface Window {
   themeMode: ThemeModeContext;
   electronWindow: ElectronWindow;
   recording: RecordingContext;
+  systemInfo: SystemInfoContext;
 }

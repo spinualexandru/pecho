@@ -55,6 +55,7 @@ function HomePage() {
   const {
     selectedModel,
     availableModels,
+    gpuVRAM,
     isLoading: isLoadingModels,
     selectModel,
     error: modelError,
@@ -167,6 +168,13 @@ function HomePage() {
     URL.revokeObjectURL(url);
   };
 
+  // Check if model size is close to GPU VRAM (80-100% of VRAM)
+  const isModelCloseToVRAM = (modelSize: number): boolean => {
+    if (!gpuVRAM) return false;
+    const vramUsagePercent = (modelSize / gpuVRAM) * 100;
+    return vramUsagePercent >= 80 && vramUsagePercent <= 100;
+  };
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex flex-1 flex-col items-center gap-6 overflow-auto p-6">
@@ -205,11 +213,21 @@ function HomePage() {
                     />
                   </SelectTrigger>
                   <SelectContent position="item-aligned">
-                    {availableModels.map((model) => (
-                      <SelectItem key={model.name} value={model.name}>
-                        {model.name}
-                      </SelectItem>
-                    ))}
+                    {availableModels.map((model) => {
+                      const isCloseToVRAM = isModelCloseToVRAM(model.size);
+                      return (
+                        <SelectItem
+                          key={model.name}
+                          value={model.name}
+                          className={
+                            isCloseToVRAM ? "bg-yellow-500/20" : undefined
+                          }
+                        >
+                          {isCloseToVRAM && "⚠ "}
+                          {model.name}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>

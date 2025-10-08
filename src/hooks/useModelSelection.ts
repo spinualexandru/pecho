@@ -5,6 +5,7 @@ const MODEL_STORAGE_KEY = "pecho-selected-model";
 export function useModelSelection() {
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [availableModels, setAvailableModels] = useState<OllamaModel[]>([]);
+  const [gpuVRAM, setGpuVRAM] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,9 +18,16 @@ export function useModelSelection() {
       setIsLoading(true);
       setError(null);
 
-      // Fetch available models from Ollama
-      const models = await window.recording.getOllamaModels();
+      // Fetch available models from Ollama and GPU VRAM in parallel
+      const [models, gpuInfo] = await Promise.all([
+        window.recording.getOllamaModels(),
+        window.systemInfo.getGPUVRAM(),
+      ]);
+
+      console.log(gpuInfo);
+
       setAvailableModels(models);
+      setGpuVRAM(gpuInfo?.vram ?? null);
 
       // Check localStorage for cached selection
       const cachedModel = localStorage.getItem(MODEL_STORAGE_KEY);
@@ -55,6 +63,7 @@ export function useModelSelection() {
   return {
     selectedModel,
     availableModels,
+    gpuVRAM,
     isLoading,
     error,
     selectModel,
