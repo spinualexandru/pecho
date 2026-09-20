@@ -19,6 +19,15 @@ interface OllamaModel {
 }
 
 interface RecordingContext {
+  getWhisperModels: () => Promise<
+    import("./helpers/whisper-helpers").WhisperModelStatus[]
+  >;
+  downloadWhisperModel: (
+    model: import("./helpers/whisper-helpers").WhisperModel,
+  ) => Promise<void>;
+  deleteWhisperModel: (
+    model: import("./helpers/whisper-helpers").WhisperModel,
+  ) => Promise<void>;
   transcribeAudio: (
     audioBuffer: ArrayBuffer,
     model?: import("./helpers/whisper-helpers").WhisperModel,

@@ -69,6 +69,23 @@ npm run test:e2e     # Package, then test the Electron UI (requires a display)
 npm run test:all     # Unit and Electron UI tests
 ```
 
+### Whisper downloads and offline cache
+
+In **Settings → Transcription**, each model shows its complete CPU/q8 download size, remaining download, and cache status. Download before a meeting to prepare it for offline use. Progress also appears during the first transcription. Deleting a selected model keeps the selection; the next transcription downloads it again. Download, loading, transcription, and deletion share one lifecycle lock, so another model operation cannot dispose a model during inference.
+
+Files live in Electron's writable `userData/transformers/<model ID>` directory. Downloads use immutable Hugging Face revisions, stream into temporary files, check their exact byte length, and rename them only after completion. Completed files survive a failed download; Retry downloads the missing files. Deletion also removes interrupted temporary files. Existing caches from earlier versions are reused when all required file sizes match. These size checks detect missing/truncated files; they are not cryptographic integrity checks.
+
+`src/helpers/whisper-manifest.json` records the actual required model, tokenizer, and processor file sizes. Regenerate deliberately with `node scripts/update-whisper-manifest.mjs` when updating checkpoints or Transformers.js. The generator uses Transformers.js 4.3 `ModelRegistry` discovery and metadata at pinned revisions. Its nested discovery calls, including those inside `pipeline()`, do not consistently forward revision or offline options. Runtime therefore downloads the manifest files first and passes the absolute cache directory to the pipeline with `local_files_only: true`. Cache inspection and deletion use only the local filesystem, including at startup without a connection.
+
+For an opt-in real-model integration check on Linux with a display, `ip`, and unprivileged network namespaces:
+
+```bash
+npm run package
+node scripts/check-whisper-packaged.cjs
+```
+
+This launches the hardened packaged binary with an isolated profile. It verifies a genuine offline download failure and Retry control, then retries after restarting online and downloads Tiny (42,985,755 bytes). A final restart inside a network namespace with no external network verifies cached discovery, actual CPU Whisper inference, and deletion of the loaded model through the UI. The check removes its temporary profile and saves `.cache/whisper-models.png`. Same-process failure/retry, partial cleanup, concurrent deletion/inference protection, and disposal failure recovery are covered by unit tests. The real-model check currently covers Tiny on Linux; Base, Small, and packaged macOS/Windows inference are not exercised by it.
+
 ### Dependency maintenance
 
 Direct dependencies target the latest stable releases available on September 20, 2026. `@electron/fuses` remains on 1.8.0 because the latest stable Forge fuses plugin (7.11.2) requires its v1 API. No peer-dependency checks are bypassed.

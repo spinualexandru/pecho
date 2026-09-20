@@ -4,10 +4,29 @@ import {
   summarizeTranscript,
   getAvailableModels,
 } from "@/services/ollama-service";
-import { transcribeAudio } from "@/services/whisper-service";
+import {
+  transcribeAudio,
+  getWhisperModels,
+  downloadWhisperModel,
+  deleteWhisperModel,
+} from "@/services/whisper-service";
 import type { WhisperModel } from "@/helpers/whisper-helpers";
 
 export function registerRecordingListeners() {
+  // Reopening a window must not register duplicate process-wide handlers.
+  for (const channel of Object.values(RECORDING_CHANNELS))
+    ipcMain.removeHandler(channel);
+  ipcMain.handle(RECORDING_CHANNELS.GET_WHISPER_MODELS, () =>
+    getWhisperModels(),
+  );
+  ipcMain.handle(
+    RECORDING_CHANNELS.DOWNLOAD_WHISPER_MODEL,
+    (_event, model: WhisperModel) => downloadWhisperModel(model),
+  );
+  ipcMain.handle(
+    RECORDING_CHANNELS.DELETE_WHISPER_MODEL,
+    (_event, model: WhisperModel) => deleteWhisperModel(model),
+  );
   ipcMain.handle(
     RECORDING_CHANNELS.TRANSCRIBE_AUDIO,
     async (

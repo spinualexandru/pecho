@@ -1,3 +1,4 @@
+import { ActiveWhisperProgress } from "@/components/WhisperModels";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import Footer from "@/components/template/Footer";
@@ -380,9 +381,12 @@ function HomePage() {
                   Transcribing Audio...
                 </CardTitle>
                 <CardDescription>
-                  Processing with Whisper AI (offline)
+                  Preparing the model and transcribing locally
                 </CardDescription>
               </CardHeader>
+              <CardContent>
+                <ActiveWhisperProgress />
+              </CardContent>
               <CardContent>
                 <div className="flex items-center justify-center py-8">
                   <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />

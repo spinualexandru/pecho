@@ -10,6 +10,12 @@ export interface OllamaModel {
 
 export function exposeRecordingContext() {
   contextBridge.exposeInMainWorld("recording", {
+    getWhisperModels: () =>
+      ipcRenderer.invoke(RECORDING_CHANNELS.GET_WHISPER_MODELS),
+    downloadWhisperModel: (model: WhisperModel) =>
+      ipcRenderer.invoke(RECORDING_CHANNELS.DOWNLOAD_WHISPER_MODEL, model),
+    deleteWhisperModel: (model: WhisperModel) =>
+      ipcRenderer.invoke(RECORDING_CHANNELS.DELETE_WHISPER_MODEL, model),
     transcribeAudio: async (
       audioBuffer: ArrayBuffer,
       model?: WhisperModel,

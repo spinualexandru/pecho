@@ -1,3 +1,4 @@
+import { WhisperModels } from "@/components/WhisperModels";
 import React, { useEffect, useState } from "react";
 import {
   Card,
@@ -128,7 +129,7 @@ function Settings() {
                       <div className="flex flex-col text-left">
                         <span className="font-medium">{model.name}</span>
                         <span className="text-sm text-muted-foreground">
-                          {model.description} • {model.size}
+                          {model.description}
                         </span>
                       </div>
                     </SelectItem>
@@ -141,6 +142,7 @@ function Settings() {
                 time.
               </p>
             </div>
+            <WhisperModels selectedModel={whisperModel} />
           </CardContent>
         </Card>
 
