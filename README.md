@@ -139,3 +139,11 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ## Special Thanks
 
 LuanRoger for the ElectronForge + Vite + TypeScript boilerplate https://github.com/LuanRoger/electron-shadcn
+
+### Desktop meeting workflow
+
+Meeting capture, transcription, the manual draft and summary generation belong to the root meeting provider. Switching between Home and Settings keeps them alive. Closing the application releases capture; meeting content is in memory and is not recovered after quitting.
+
+The main window uses Electron 44's [named window state persistence](https://www.electronjs.org/docs/latest/tutorial/window-state-persistence) for bounds and display mode, including Electron's built-in adjustment to changed displays. Wayland compositors control placement and may restrict resizing/restoration. Native progress covers model download, transcription and summary jobs, clearing on completion, failure or cancellation. [Electron 44 supports Linux LauncherEntry docks](https://www.electronjs.org/blog/electron-44-0); desktops without that integration still show progress inside the application.
+
+`npm run test:e2e` packages and launches the packaged Linux executable. The desktop test uses an oscillator-backed synthetic MediaStream, never a live microphone, to check navigation during recording, preserved drafts and reduced motion. The HTTP fixture checks navigation during summary streaming. The geometry test loads the packaged ASAR using the installed Electron binary and an isolated Ozone headless display to inspect native bounds across relaunch; the UI tests attach through Chromium CDP to the hardened shipped executable. Native macOS/Windows dock presentation and physical monitor hot-plugging require platform testing.

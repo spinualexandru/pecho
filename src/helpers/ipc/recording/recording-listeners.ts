@@ -16,16 +16,22 @@ import {
 } from "@/services/whisper-service";
 import type { WhisperModel } from "@/helpers/whisper-helpers";
 
+import { desktopProgress } from "@/services/desktop-progress";
+
 const summaries = new SummaryJobs();
 const watched = new WeakSet<Electron.WebContents>();
 function watch(sender: Electron.WebContents) {
   if (watched.has(sender)) return;
   watched.add(sender);
   const owner = sender.id;
-  sender.on("render-process-gone", () => summaries.dispose(owner));
-  sender.once("destroyed", () => summaries.dispose(owner));
+  const dispose = () => {
+    summaries.dispose(owner);
+    desktopProgress.clearOwner(owner);
+  };
+  sender.on("render-process-gone", dispose);
+  sender.once("destroyed", dispose);
   sender.on("did-start-navigation", (_event, _url, isInPlace, isMainFrame) => {
-    if (isMainFrame && !isInPlace) summaries.dispose(owner);
+    if (isMainFrame && !isInPlace) dispose();
   });
 }
 function validateModel(model: unknown) {
@@ -42,7 +48,23 @@ export function registerRecordingListeners() {
   );
   ipcMain.handle(
     RECORDING_CHANNELS.DOWNLOAD_WHISPER_MODEL,
-    (_event, model: WhisperModel) => downloadWhisperModel(validateModel(model)),
+    (event, model: WhisperModel) => {
+      const id = validateModel(model);
+      watch(event.sender);
+      return desktopProgress.run(
+        `${event.sender.id}:download:${crypto.randomUUID()}`,
+        () => downloadWhisperModel(id),
+        async () => {
+          const status = (await getWhisperModels()).find(
+            (entry) => entry.id === id,
+          );
+          return status?.phase === "downloading" &&
+            status.progressTotalBytes > 0
+            ? Math.min(1, status.loadedBytes / status.progressTotalBytes)
+            : 2;
+        },
+      );
+    },
   );
   ipcMain.handle(
     RECORDING_CHANNELS.DELETE_WHISPER_MODEL,
@@ -51,16 +73,21 @@ export function registerRecordingListeners() {
   ipcMain.handle(
     RECORDING_CHANNELS.TRANSCRIBE_AUDIO,
     async (
-      _event,
+      event,
       audioBuffer: ArrayBuffer,
       model?: WhisperModel,
       language?: string,
     ) => {
       const validated = validateTranscription(audioBuffer, model, language);
-      return await transcribeAudio(
-        validated.samples,
-        validated.model,
-        validated.language,
+      watch(event.sender);
+      return desktopProgress.run(
+        `${event.sender.id}:transcription:${crypto.randomUUID()}`,
+        () =>
+          transcribeAudio(
+            validated.samples,
+            validated.model,
+            validated.language,
+          ),
       );
     },
   );
@@ -71,6 +98,9 @@ export function registerRecordingListeners() {
       const request = summaryRequestSchema.parse(payload);
       watch(event.sender);
       summaries.start(event.sender.id, request, (data) => {
+        const key = `${event.sender.id}:summary:${data.requestId}`;
+        if (data.status === "generating") desktopProgress.set(key, 2);
+        else desktopProgress.clear(key);
         if (!event.sender.isDestroyed())
           event.sender.send(RECORDING_CHANNELS.SUMMARY_EVENT, data);
       });
@@ -82,6 +112,7 @@ export function registerRecordingListeners() {
       watch(event.sender);
       const requestId = requestIdSchema.parse(payload);
       summaries.cancel(event.sender.id, requestId);
+      desktopProgress.clear(`${event.sender.id}:summary:${requestId}`);
       event.sender.send(RECORDING_CHANNELS.SUMMARY_EVENT, {
         requestId,
         status: "canceled",

@@ -124,5 +124,7 @@
   "Due date": "Termen limită",
   "Not specified": "Nespecificat",
   "No decisions recorded": "Nu au fost înregistrate decizii",
-  "No action items recorded": "Nu au fost înregistrate sarcini"
+  "No action items recorded": "Nu au fost înregistrate sarcini",
+  "Starting recording...": "Se pornește înregistrarea...",
+  "Capturing microphone only": "Se înregistrează doar microfonul"
 }

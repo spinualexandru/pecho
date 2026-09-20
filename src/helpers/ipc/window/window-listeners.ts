@@ -5,18 +5,20 @@ import {
   WIN_MINIMIZE_CHANNEL,
 } from "./window-channels";
 
-export function addWindowEventListeners(mainWindow: BrowserWindow) {
-  ipcMain.handle(WIN_MINIMIZE_CHANNEL, () => {
-    mainWindow.minimize();
+export function addWindowEventListeners() {
+  ipcMain.handle(WIN_MINIMIZE_CHANNEL, (event) => {
+    BrowserWindow.fromWebContents(event.sender)?.minimize();
   });
-  ipcMain.handle(WIN_MAXIMIZE_CHANNEL, () => {
+  ipcMain.handle(WIN_MAXIMIZE_CHANNEL, (event) => {
+    const mainWindow = BrowserWindow.fromWebContents(event.sender);
+    if (!mainWindow) return;
     if (mainWindow.isMaximized()) {
       mainWindow.unmaximize();
     } else {
       mainWindow.maximize();
     }
   });
-  ipcMain.handle(WIN_CLOSE_CHANNEL, () => {
-    mainWindow.close();
+  ipcMain.handle(WIN_CLOSE_CHANNEL, (event) => {
+    BrowserWindow.fromWebContents(event.sender)?.close();
   });
 }

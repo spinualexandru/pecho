@@ -37,7 +37,6 @@ import {
 } from "@/helpers/language-helpers";
 import { ThemeMode } from "@/types/theme-mode";
 import { createFileRoute } from "@tanstack/react-router";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 function Settings() {
   const { t, i18n } = useTranslation();
@@ -89,7 +88,7 @@ function Settings() {
   return (
     <div className="container mx-auto max-w-2xl p-6">
       <h1 className="mb-6 text-3xl font-bold">{t("Settings")}</h1>
-      <ScrollArea className="flex h-[480px] max-h-screen w-full flex-col rounded-md border p-4">
+      <div className="flex w-full flex-col rounded-md border p-4">
         <Card className="mb-4">
           <CardHeader>
             <CardTitle>{t("Appearance")}</CardTitle>
@@ -262,7 +261,7 @@ function Settings() {
             </div>
           </CardContent>
         </Card>
-      </ScrollArea>
+      </div>
     </div>
   );
 }

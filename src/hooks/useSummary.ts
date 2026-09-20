@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { SummaryEvent, SummaryRequest } from "@/helpers/summary-contract";
 export type SummaryState = { status: "idle" } | SummaryEvent;
 
-// Can move unchanged into a meeting provider when route-persistent state lands.
 export function useSummary() {
   const [state, setState] = useState<SummaryState>({ status: "idle" });
   const active = useRef<string | null>(null);

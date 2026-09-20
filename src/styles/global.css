@@ -202,3 +202,29 @@
     @apply bg-background text-foreground;
   }
 }
+
+.app-scroll {
+  scrollbar-gutter: stable;
+}
+.meeting-phase {
+  animation: phase-enter 160ms ease-out;
+}
+@keyframes phase-enter {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

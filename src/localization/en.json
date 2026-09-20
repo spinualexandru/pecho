@@ -124,5 +124,7 @@
   "Due date": "Due date",
   "Not specified": "Not specified",
   "No decisions recorded": "No decisions recorded",
-  "No action items recorded": "No action items recorded"
+  "No action items recorded": "No action items recorded",
+  "Starting recording...": "Starting recording...",
+  "Capturing microphone only": "Capturing microphone only"
 }

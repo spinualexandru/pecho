@@ -1,4 +1,5 @@
-import { test, expect, _electron as electron } from "@playwright/test";
+import { launchPackaged } from "./packaged-app";
+import { test, expect } from "@playwright/test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { createServer } from "node:http";
 import os from "node:os";
@@ -97,14 +98,10 @@ test("real Electron IPC and HTTP streaming handle availability, structured resul
   if (!address || typeof address === "string")
     throw new Error("Missing fixture port");
   const profile = await mkdtemp(path.join(os.tmpdir(), "pecho-e2e-"));
-  const app = await electron.launch({
-    args: [".", `--user-data-dir=${profile}`],
-    env: {
-      ...process.env,
-      NODE_ENV: "test",
-      ELECTRON_RUN_AS_NODE: "",
-      OLLAMA_HOST: `127.0.0.1:${address.port}/`,
-    },
+  const app = await launchPackaged(profile, {
+    ...process.env,
+    NODE_ENV: "test",
+    OLLAMA_HOST: `127.0.0.1:${address.port}/`,
   });
   try {
     const window = await app.firstWindow();
@@ -233,9 +230,15 @@ test("real Electron IPC and HTTP streaming handle availability, structured resul
       "Am decis",
     );
     await window.getByRole("link", { name: "Settings", exact: true }).click();
-    await expect.poll(() => canceledConnections).toBeGreaterThan(2);
     await window.getByRole("link", { name: "Home", exact: true }).click();
-    await expect(window.getByTestId("structured-summary")).toHaveCount(0);
+    await expect(window.getByTestId("summary-preview")).toContainText(
+      "Am decis",
+    );
+    await expect(window.getByTestId("structured-summary")).toContainText(
+      "Livrare vineri",
+      { timeout: 10000 },
+    );
+    expect(canceledConnections).toBe(2);
     generation = "valid";
     await manual();
     await expect(window.getByTestId("structured-summary")).toContainText(

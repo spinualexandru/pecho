@@ -1,6 +1,6 @@
 import { LocalizedError } from "@/components/LocalizedError";
 import { ActiveWhisperProgress } from "@/components/WhisperModels";
-import React, { useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import Footer from "@/components/template/Footer";
 import InitialIcons from "@/components/template/InitialIcons";
@@ -15,7 +15,7 @@ import {
   FileText,
   Download,
 } from "lucide-react";
-import { useRecording } from "@/hooks/useRecording";
+import { useMeeting } from "@/providers/MeetingProvider";
 import { useModelSelection } from "@/hooks/useModelSelection";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,7 +26,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -35,13 +34,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useSummary } from "@/hooks/useSummary";
 import { MeetingSummary } from "@/components/MeetingSummary";
 import { getSummaryLanguage } from "@/helpers/language-helpers";
 
 function HomePage() {
   const { t } = useTranslation();
   const {
+    recording,
+    summary: summaryJob,
+    manualInput,
+    setManualInput,
+    useManualMode,
+    setUseManualMode,
+  } = useMeeting();
+  const {
+    isStarting,
+    hasSystemAudio,
     isRecording,
     isPaused,
     transcript,
@@ -53,7 +61,7 @@ function HomePage() {
     setTranscript,
     error,
     isTranscribing,
-  } = useRecording();
+  } = recording;
 
   const {
     selectedModel,
@@ -71,12 +79,10 @@ function HomePage() {
     start: startSummary,
     cancel: cancelSummary,
     reset: resetSummary,
-  } = useSummary();
+  } = summaryJob;
   const isProcessing = summaryState.status === "generating";
   const summary =
     summaryState.status === "completed" ? summaryState.result : null;
-  const [manualInput, setManualInput] = useState<string>("");
-  const [useManualMode, setUseManualMode] = useState(false);
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -85,6 +91,7 @@ function HomePage() {
   };
 
   const handleStartRecording = async () => {
+    if (isStarting || isTranscribing || isRecording) return;
     resetSummary();
     setUseManualMode(false);
     await startRecording();
@@ -96,6 +103,7 @@ function HomePage() {
   };
 
   const handleManualInput = () => {
+    if (isStarting || isTranscribing || isRecording) return;
     resetSummary();
     setTranscript("");
     setManualInput("");
@@ -162,8 +170,8 @@ function HomePage() {
   };
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex flex-1 flex-col items-center gap-6 overflow-auto p-6">
+    <div className="flex min-h-full flex-col">
+      <div className="flex flex-1 flex-col items-center gap-6 p-6">
         <div className="flex w-full max-w-4xl flex-col items-center gap-2">
           <div className="flex flex-col items-center gap-2">
             <label className="text-sm text-muted-foreground">
@@ -233,7 +241,13 @@ function HomePage() {
             </p>
           )}
         </div>
-        {!isRecording && !transcript && !useManualMode && (
+        {error && (
+          <div className="mt-4 flex items-center gap-2 text-destructive">
+            <AlertCircle className="h-4 w-4" />
+            <LocalizedError message={error.message} detail={error.detail} />
+          </div>
+        )}
+        {!isRecording && !isTranscribing && !transcript && !useManualMode && (
           <div className="flex flex-1 flex-col items-center justify-center gap-2">
             <InitialIcons />
             <span>
@@ -250,16 +264,16 @@ function HomePage() {
                 <Button
                   size="lg"
                   onClick={handleStartRecording}
-                  disabled={isProcessing}
+                  disabled={isProcessing || isStarting || isTranscribing}
                 >
                   <Mic className="mr-2 h-5 w-5" />
-                  {t("Voice Recording")}
+                  {t(isStarting ? "Starting recording..." : "Voice Recording")}
                 </Button>
                 <Button
                   size="lg"
                   variant="outline"
                   onClick={handleManualInput}
-                  disabled={isProcessing}
+                  disabled={isProcessing || isStarting || isTranscribing}
                 >
                   <FileText className="mr-2 h-5 w-5" />
                   {t("Manual Input")}
@@ -273,17 +287,11 @@ function HomePage() {
                 </p>
               )}
             </div>
-            {error && (
-              <div className="mt-4 flex items-center gap-2 text-destructive">
-                <AlertCircle className="h-4 w-4" />
-                <LocalizedError message={error.message} detail={error.detail} />
-              </div>
-            )}
           </div>
         )}
 
         {useManualMode && !transcript && (
-          <div className="w-full max-w-4xl space-y-4">
+          <div className="meeting-phase w-full max-w-4xl space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -296,6 +304,8 @@ function HomePage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <Textarea
+                  autoFocus
+                  aria-label={t("Manual Transcript Input")}
                   placeholder={t("Enter your meeting transcript here...")}
                   className="min-h-[300px] resize-y"
                   value={manualInput}
@@ -324,7 +334,7 @@ function HomePage() {
         )}
 
         {isRecording && (
-          <div className="w-full max-w-4xl space-y-4">
+          <div className="meeting-phase w-full max-w-4xl space-y-4">
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -335,7 +345,11 @@ function HomePage() {
                     </CardTitle>
                     <CardDescription>
                       {formatDuration(duration)} •{" "}
-                      {t("Capturing microphone + system audio")}
+                      {t(
+                        hasSystemAudio
+                          ? "Capturing microphone + system audio"
+                          : "Capturing microphone only",
+                      )}
                     </CardDescription>
                   </div>
                   <div className="flex gap-2">
@@ -370,18 +384,18 @@ function HomePage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-64 w-full rounded-md border p-4">
+                <div className="w-full rounded-md border p-4">
                   <p className="text-sm whitespace-pre-wrap text-muted-foreground">
                     {t("Recording audio... Stop to transcribe.")}
                   </p>
-                </ScrollArea>
+                </div>
               </CardContent>
             </Card>
           </div>
         )}
 
         {isTranscribing && (
-          <div className="w-full max-w-4xl space-y-4">
+          <div className="meeting-phase w-full max-w-4xl space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -405,7 +419,7 @@ function HomePage() {
         )}
 
         {!isRecording && !isTranscribing && transcript && (
-          <div className="w-full max-w-4xl space-y-4">
+          <div className="meeting-phase w-full max-w-4xl space-y-4">
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -429,9 +443,9 @@ function HomePage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-48 w-full rounded-md border p-4">
+                <div className="w-full rounded-md border p-4">
                   <p className="text-sm whitespace-pre-wrap">{transcript}</p>
-                </ScrollArea>
+                </div>
               </CardContent>
             </Card>
 
@@ -474,9 +488,9 @@ function HomePage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-64 w-full rounded-md border p-4">
+                  <div className="w-full rounded-md border p-4">
                     <MeetingSummary result={summary} />
-                  </ScrollArea>
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -507,11 +521,20 @@ function HomePage() {
             )}
 
             <div className="flex justify-center gap-4">
-              <Button onClick={handleStartRecording} size="lg">
+              <Button
+                onClick={handleStartRecording}
+                disabled={isStarting || isTranscribing}
+                size="lg"
+              >
                 <Mic className="mr-2 h-5 w-5" />
                 {t("New Recording")}
               </Button>
-              <Button onClick={handleManualInput} size="lg" variant="outline">
+              <Button
+                onClick={handleManualInput}
+                disabled={isStarting || isTranscribing}
+                size="lg"
+                variant="outline"
+              >
                 <FileText className="mr-2 h-5 w-5" />
                 {t("Manual Input")}
               </Button>

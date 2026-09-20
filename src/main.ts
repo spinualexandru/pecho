@@ -13,6 +13,8 @@ const inDevelopment = process.env.NODE_ENV === "development";
 function createWindow() {
   const preload = path.join(__dirname, "preload.js");
   const mainWindow = new BrowserWindow({
+    name: "personal-echo-main",
+    windowStatePersistence: true,
     width: 800,
     height: 600,
     webPreferences: {
@@ -27,7 +29,6 @@ function createWindow() {
     trafficLightPosition:
       process.platform === "darwin" ? { x: 5, y: 5 } : undefined,
   });
-  registerListeners(mainWindow);
 
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
@@ -49,7 +50,10 @@ async function installExtensions() {
 
 app
   .whenReady()
-  .then(createWindow)
+  .then(() => {
+    registerListeners();
+    createWindow();
+  })
   .then(() => {
     if (inDevelopment) return installExtensions();
   });

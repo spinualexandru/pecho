@@ -1,5 +1,5 @@
 import type { TranslationKey } from "@/localization/i18n";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { getWhisperModel } from "@/helpers/whisper-helpers";
 import { getTranscriberLanguage } from "@/helpers/language-helpers";
 
@@ -7,255 +7,233 @@ interface RecordingError {
   message: TranslationKey;
   detail?: string;
 }
-
-interface UseRecordingReturn {
-  isRecording: boolean;
-  isPaused: boolean;
-  transcript: string;
-  duration: number;
-  startRecording: () => Promise<void>;
-  stopRecording: () => Promise<void>;
-  pauseRecording: () => void;
-  resumeRecording: () => void;
-  setTranscript: (transcript: string) => void;
-  error: RecordingError | null;
-  isTranscribing: boolean;
+interface Capture {
+  streams: MediaStream[];
+  context: AudioContext;
+  recorder?: MediaRecorder;
+  timer?: ReturnType<typeof setInterval>;
+  chunks: Blob[];
+}
+function release(capture: Capture) {
+  clearInterval(capture.timer);
+  capture.streams.forEach((stream) =>
+    stream.getTracks().forEach((track) => track.stop()),
+  );
+  capture.streams = [];
+  if (capture.context.state !== "closed")
+    void capture.context.close().catch(() => {});
 }
 
-export function useRecording(): UseRecordingReturn {
+export function useRecording() {
   const [isRecording, setIsRecording] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+  const [hasSystemAudio, setHasSystemAudio] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState<RecordingError | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const captureRef = useRef<Capture | null>(null);
+  const decodeRef = useRef<AudioContext | null>(null);
+  const busyRef = useRef(false);
+  const epoch = useRef(0);
 
-  const preferencesRef = useRef({
-    model: getWhisperModel(),
-    language: getTranscriberLanguage(),
-  });
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const micStreamRef = useRef<MediaStream | null>(null);
-  const systemStreamRef = useRef<MediaStream | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const mixedStreamRef = useRef<MediaStream | null>(null);
-
-  const processAudioBlob = useCallback(async (audioBlob: Blob) => {
-    try {
-      setIsTranscribing(true);
-      setError(null);
-
-      // Create audio context
-      const audioContext = new AudioContext({ sampleRate: 16000 });
-      audioContextRef.current = audioContext;
-
-      // Convert blob to array buffer
-      const arrayBuffer = await audioBlob.arrayBuffer();
-
-      // Decode audio data
-      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-      // Get audio channel data (mono)
-      const channelData = audioBuffer.getChannelData(0);
-
-      // Send to main process for transcription
-      const transcriptText = await window.recording.transcribeAudio(
-        new Float32Array(channelData).buffer,
-        preferencesRef.current.model,
-        preferencesRef.current.language,
-      );
-
-      setTranscript(transcriptText);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to transcribe audio";
-      setError({
-        message:
-          "Could not transcribe audio. Check the model and language in Settings, then retry.",
-        detail: errorMessage,
-      });
-      console.error("Transcription error:", err);
-    } finally {
-      setIsTranscribing(false);
-      if (audioContextRef.current) {
-        await audioContextRef.current.close();
-        audioContextRef.current = null;
+  useEffect(
+    () => () => {
+      epoch.current++;
+      busyRef.current = false;
+      const capture = captureRef.current;
+      captureRef.current = null;
+      if (capture) {
+        if (capture.recorder) {
+          capture.recorder.onstop = null;
+          capture.recorder.ondataavailable = null;
+          capture.recorder.onerror = null;
+          if (capture.recorder.state !== "inactive") capture.recorder.stop();
+        }
+        release(capture);
       }
-    }
-  }, []);
+      const decoder = decodeRef.current;
+      decodeRef.current = null;
+      if (decoder && decoder.state !== "closed")
+        void decoder.close().catch(() => {});
+    },
+    [],
+  );
 
   const startRecording = useCallback(async () => {
+    // React state alone cannot guard two clicks before the next render.
+    if (busyRef.current) return;
+    busyRef.current = true;
+    const operation = ++epoch.current;
+    const current = () => epoch.current === operation;
+    const preferences = {
+      model: getWhisperModel(),
+      language: getTranscriberLanguage(),
+    };
+    setIsStarting(true);
+    setHasSystemAudio(false);
+    setError(null);
+    let capture: Capture | undefined;
     try {
-      setError(null);
-      preferencesRef.current = {
-        model: getWhisperModel(),
-        language: getTranscriberLanguage(),
-      };
-      setTranscript("");
-      setDuration(0);
-      audioChunksRef.current = [];
-
-      // Create audio context for mixing
-      const audioContext = new AudioContext();
-      const audioDestination = audioContext.createMediaStreamDestination();
-
-      // Request microphone access
-      const micStream = await navigator.mediaDevices.getUserMedia({
+      const context = new AudioContext();
+      capture = { context, streams: [], chunks: [] };
+      captureRef.current = capture;
+      const destination = context.createMediaStreamDestination();
+      capture.streams.push(destination.stream);
+      const mic = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
         },
       });
-      micStreamRef.current = micStream;
-
-      // Connect microphone to destination
-      const micSource = audioContext.createMediaStreamSource(micStream);
-      micSource.connect(audioDestination);
-
-      // Request system audio (desktop capture)
+      capture.streams.push(mic);
+      if (!current()) {
+        release(capture);
+        return;
+      }
+      context.createMediaStreamSource(mic).connect(destination);
       try {
-        const systemStream = await navigator.mediaDevices.getDisplayMedia({
-          video: true, // Required for getDisplayMedia, but we'll only use audio
+        const system = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
           audio: {
             echoCancellation: false,
             noiseSuppression: false,
             autoGainControl: false,
           },
         });
-        systemStreamRef.current = systemStream;
-
-        // Connect system audio to destination
-        const audioTracks = systemStream.getAudioTracks();
-        if (audioTracks.length > 0) {
-          const systemAudioStream = new MediaStream(audioTracks);
-          const systemSource =
-            audioContext.createMediaStreamSource(systemAudioStream);
-          systemSource.connect(audioDestination);
+        capture.streams.push(system);
+        if (!current()) {
+          release(capture);
+          return;
         }
-
-        // Stop video track immediately (we only need audio)
-        const videoTracks = systemStream.getVideoTracks();
-        videoTracks.forEach((track) => track.stop());
-      } catch (displayErr) {
-        console.warn(
-          "System audio capture failed, continuing with microphone only:",
-          displayErr,
-        );
+        setHasSystemAudio(system.getAudioTracks().length > 0);
+        if (system.getAudioTracks().length)
+          context
+            .createMediaStreamSource(new MediaStream(system.getAudioTracks()))
+            .connect(destination);
+        system.getVideoTracks().forEach((track) => track.stop());
+      } catch {
+        if (!current()) return;
         setError({
           message:
             "Note: Only capturing microphone. System audio capture was declined.",
         });
       }
-
-      // Use the mixed stream for recording
-      const mixedStream = audioDestination.stream;
-      mixedStreamRef.current = mixedStream;
-
-      // Set up MediaRecorder for the mixed audio
-      const mediaRecorder = new MediaRecorder(mixedStream, {
+      if (!current()) return;
+      const owned = capture;
+      const recorder = new MediaRecorder(destination.stream, {
         mimeType: "audio/webm",
       });
-      mediaRecorderRef.current = mediaRecorder;
-
-      // Collect audio chunks
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
+      owned.recorder = recorder;
+      recorder.ondataavailable = (event) => {
+        if (event.data.size) owned.chunks.push(event.data);
+      };
+      recorder.onerror = () => {
+        if (!current()) return;
+        epoch.current++;
+        recorder.onstop = null;
+        if (recorder.state !== "inactive") recorder.stop();
+        release(owned);
+        captureRef.current = null;
+        busyRef.current = false;
+        setIsRecording(false);
+        setIsPaused(false);
+        setIsTranscribing(false);
+        setError({
+          message: "Could not start recording. Check microphone access.",
+        });
+      };
+      recorder.onstop = async () => {
+        release(owned);
+        if (!current()) return;
+        captureRef.current = null;
+        setIsRecording(false);
+        setIsPaused(false);
+        setIsTranscribing(true);
+        let decoder: AudioContext | undefined;
+        try {
+          decoder = new AudioContext({ sampleRate: 16000 });
+          decodeRef.current = decoder;
+          const bytes = await new Blob(owned.chunks, {
+            type: "audio/webm",
+          }).arrayBuffer();
+          if (!current()) return;
+          const audio = await decoder.decodeAudioData(bytes);
+          if (!current()) return;
+          const result = await window.recording.transcribeAudio(
+            new Float32Array(audio.getChannelData(0)).buffer,
+            preferences.model,
+            preferences.language,
+          );
+          if (current()) setTranscript(result);
+        } catch (err) {
+          if (current())
+            setError({
+              message:
+                "Could not transcribe audio. Check the model and language in Settings, then retry.",
+              detail: String(err),
+            });
+        } finally {
+          if (decoder && decoder.state !== "closed")
+            await decoder.close().catch(() => {});
+          if (decodeRef.current === decoder) decodeRef.current = null;
+          if (current()) {
+            busyRef.current = false;
+            setIsTranscribing(false);
+          }
         }
       };
-
-      // Handle recording stop
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, {
-          type: "audio/webm",
-        });
-        await processAudioBlob(audioBlob);
-      };
-
-      mediaRecorder.start(1000); // Collect data every second
-
-      // Start timer
-      timerRef.current = setInterval(() => {
-        setDuration((prev) => prev + 1);
-      }, 1000);
-
+      recorder.start(1000);
+      owned.timer = setInterval(() => setDuration((value) => value + 1), 1000);
+      setTranscript("");
+      setDuration(0);
       setIsRecording(true);
       setIsPaused(false);
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to start recording";
-      setError({
-        message: "Could not start recording. Check microphone access.",
-        detail: errorMessage,
-      });
-      console.error("Recording error:", err);
+      if (capture) release(capture);
+      if (current()) {
+        captureRef.current = null;
+        busyRef.current = false;
+        setError({
+          message: "Could not start recording. Check microphone access.",
+          detail: String(err),
+        });
+      }
+    } finally {
+      if (current()) setIsStarting(false);
     }
-  }, [processAudioBlob]);
-
-  const stopRecording = useCallback(async () => {
-    if (
-      mediaRecorderRef.current &&
-      mediaRecorderRef.current.state !== "inactive"
-    ) {
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current = null;
-    }
-
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-
-    // Stop all tracks
-    if (micStreamRef.current) {
-      micStreamRef.current.getTracks().forEach((track) => track.stop());
-      micStreamRef.current = null;
-    }
-
-    if (systemStreamRef.current) {
-      systemStreamRef.current.getTracks().forEach((track) => track.stop());
-      systemStreamRef.current = null;
-    }
-
-    if (mixedStreamRef.current) {
-      mixedStreamRef.current.getTracks().forEach((track) => track.stop());
-      mixedStreamRef.current = null;
-    }
-
-    setIsRecording(false);
-    setIsPaused(false);
   }, []);
 
+  const stopRecording = useCallback(async () => {
+    const capture = captureRef.current;
+    if (!capture?.recorder || capture.recorder.state === "inactive") return;
+    // The busy guard stays held until transcription settles.
+    setIsTranscribing(true);
+    setIsRecording(false);
+    setIsPaused(false);
+    capture.recorder.stop();
+    release(capture);
+  }, []);
   const pauseRecording = useCallback(() => {
-    if (mediaRecorderRef.current && isRecording && !isPaused) {
-      if (mediaRecorderRef.current.state === "recording") {
-        mediaRecorderRef.current.pause();
-      }
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-      setIsPaused(true);
-    }
-  }, [isRecording, isPaused]);
-
+    const capture = captureRef.current;
+    if (capture?.recorder?.state !== "recording") return;
+    capture.recorder.pause();
+    clearInterval(capture.timer);
+    setIsPaused(true);
+  }, []);
   const resumeRecording = useCallback(() => {
-    if (mediaRecorderRef.current && isRecording && isPaused) {
-      if (mediaRecorderRef.current.state === "paused") {
-        mediaRecorderRef.current.resume();
-      }
-      timerRef.current = setInterval(() => {
-        setDuration((prev) => prev + 1);
-      }, 1000);
-      setIsPaused(false);
-    }
-  }, [isRecording, isPaused]);
-
+    const capture = captureRef.current;
+    if (capture?.recorder?.state !== "paused") return;
+    capture.recorder.resume();
+    capture.timer = setInterval(() => setDuration((value) => value + 1), 1000);
+    setIsPaused(false);
+  }, []);
   return {
     isRecording,
+    hasSystemAudio,
+    isStarting,
     isPaused,
     transcript,
     duration,
