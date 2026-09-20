@@ -12,6 +12,16 @@ if (compiler !== "babel" && compiler !== "oxc") {
 }
 
 export default defineConfig({
+  // Only the application HTML is a dependency-scan entry. Generated reports
+  // and packaged renderers are not additional applications.
+  optimizeDeps: { entries: ["index.html"] },
+  server: {
+    watch: {
+      ignored: [
+        "**/{.vite,.cache,out,dist,coverage,playwright-report,test-results,blob-report}/**",
+      ],
+    },
+  },
   plugins: [
     tanstackRouter({
       target: "react",

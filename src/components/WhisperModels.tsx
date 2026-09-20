@@ -57,6 +57,29 @@ export function ActiveWhisperProgress() {
   return active ? <WhisperProgress model={active} /> : null;
 }
 
+async function runModelAction(
+  model: WhisperModel,
+  action: "download" | "delete",
+  setPending: (model: WhisperModel | null) => void,
+  setActionError: (error: string | null) => void,
+  setConfirmDelete: (model: WhisperModel | null) => void,
+) {
+  setPending(model);
+  setActionError(null);
+  setConfirmDelete(null);
+  try {
+    if (action === "download")
+      await window.recording.downloadWhisperModel(model);
+    else await window.recording.deleteWhisperModel(model);
+  } catch (reason) {
+    setActionError(
+      reason instanceof Error ? reason.message : "Model operation failed",
+    );
+  } finally {
+    setPending(null);
+  }
+}
+
 export function WhisperModels({
   selectedModel,
 }: {
@@ -71,21 +94,14 @@ export function WhisperModels({
   const [pending, setPending] = useState<WhisperModel | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<WhisperModel | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  async function run(model: WhisperModel, action: "download" | "delete") {
-    setPending(model);
-    setActionError(null);
-    setConfirmDelete(null);
-    try {
-      if (action === "download")
-        await window.recording.downloadWhisperModel(model);
-      else await window.recording.deleteWhisperModel(model);
-    } catch (reason) {
-      setActionError(
-        reason instanceof Error ? reason.message : "Model operation failed",
-      );
-    } finally {
-      setPending(null);
-    }
+  function run(model: WhisperModel, action: "download" | "delete") {
+    return runModelAction(
+      model,
+      action,
+      setPending,
+      setActionError,
+      setConfirmDelete,
+    );
   }
   return (
     <div className="space-y-3">

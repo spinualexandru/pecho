@@ -220,3 +220,45 @@ it("releases the decoder after rejected transcription and allows a new recording
   await act(() => result.current.startRecording());
   expect(result.current.isRecording).toBe(true);
 });
+
+it("releases the busy guard even if closing the decoder rejects", async () => {
+  let finish!: (text: string) => void;
+  vi.mocked(window.recording.transcribeAudio).mockReturnValueOnce(
+    new Promise((resolve) => {
+      finish = resolve;
+    }),
+  );
+  const { result } = renderHook(useRecording);
+  await act(() => result.current.startRecording());
+  act(() => result.current.stopRecording());
+  await waitFor(() =>
+    expect(window.recording.transcribeAudio).toHaveBeenCalledOnce(),
+  );
+  contexts[1].close.mockRejectedValueOnce(new Error("already closing"));
+  await act(async () => finish("transcribed despite cleanup rejection"));
+  expect(contexts[1].close).toHaveBeenCalledOnce();
+  expect(result.current.isTranscribing).toBe(false);
+  expect(result.current.transcript).toBe(
+    "transcribed despite cleanup rejection",
+  );
+  await act(() => result.current.startRecording());
+  expect(result.current.isRecording).toBe(true);
+});
+
+it("closes an in-flight decoder on unmount and skips late transcription", async () => {
+  let finish!: (bytes: ArrayBuffer) => void;
+  vi.spyOn(Blob.prototype, "arrayBuffer").mockReturnValueOnce(
+    new Promise((resolve) => {
+      finish = resolve;
+    }),
+  );
+  const { result, unmount } = renderHook(useRecording);
+  await act(() => result.current.startRecording());
+  act(() => result.current.stopRecording());
+  await waitFor(() => expect(contexts).toHaveLength(2));
+  unmount();
+  await act(async () => finish(new ArrayBuffer(4)));
+  expect(contexts[1].close).toHaveBeenCalledOnce();
+  expect(contexts[1].decodeAudioData).not.toHaveBeenCalled();
+  expect(window.recording.transcribeAudio).not.toHaveBeenCalled();
+});

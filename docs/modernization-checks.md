@@ -28,6 +28,13 @@ handlers. New regressions cover failed system-theme IPC, model poll recovery,
 unmount during a rejected poll, and transcription failure followed by recording
 retry. No rule is disabled to accommodate these paths.
 
+Development loads React DevTools through `session.extensions`; the installer is
+pinned to 4.0.0 because only its published downloader submodule is used, avoiding
+its deprecated Session wrapper. Vite scans only the application's `index.html`
+and ignores generated build, cache, coverage, and Playwright output directories.
+The warning-cleanup follow-up passed 46 unit tests, three packaged E2E tests,
+an isolated development launch, and a live source-versus-output watcher check.
+
 The three-platform workflow uses npm 12.0.2 to enforce `allowScripts`, uses the
 lockfile, and packages each host's app before
 UI testing. The launcher selects the platform/architecture-specific executable,
@@ -69,11 +76,14 @@ Both separately packaged builds passed all three Electron E2E tests. The ordinar
 unit suite tests source behavior without React Compiler enabled; the packaged
 E2E runs are the evidence for compiled renderer compatibility.
 
-Oxc emits four recoverable diagnostics for `try/finally` in `useRecording`,
-`useWhisperModels`, and `WhisperModels`, leaving those functions unoptimized.
-A separate Babel compiler logger inspection reports the same four unsupported
-constructs. Cleanup is preserved; it is not rewritten to satisfy an optimizer.
-Oxc diagnostics remain enabled so future changes stay visible.
+The benchmark above predates the compiler-warning cleanup: that source tree
+produced four recoverable `try/finally` diagnostics in `useRecording`,
+`useWhisperModels`, and `WhisperModels` under both Oxc and Babel, leaving those
+functions unoptimized. The current code moves imperative capture, polling, and
+model operations into module-level helpers while preserving their `finally`
+cleanup and cancellation checks. The default renderer build now completes
+without those diagnostics; diagnostics remain enabled. The benchmark has not
+been rerun for this follow-up change.
 
 **Decision:** use Oxc by default after the measured improvement and packaged
 compatibility checks. Keep Babel dependencies and the selector for comparison or

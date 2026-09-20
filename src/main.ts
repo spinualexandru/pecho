@@ -1,12 +1,12 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, session } from "electron";
 import registerListeners from "./helpers/ipc/listeners-register";
 // "electron-squirrel-startup" seems broken when packaging with vite
 //import started from "electron-squirrel-startup";
 import path from "path";
-import {
-  installExtension,
-  REACT_DEVELOPER_TOOLS,
-} from "electron-devtools-installer";
+import { REACT_DEVELOPER_TOOLS } from "electron-devtools-installer";
+// Installer 4's loading wrapper uses deprecated Session methods. Keep its
+// downloader/cache, but load through Electron's current Extensions API.
+import { downloadChromeExtension } from "electron-devtools-installer/dist/downloadChromeExtension";
 
 const inDevelopment = process.env.NODE_ENV === "development";
 
@@ -41,10 +41,17 @@ async function createWindow() {
 
 async function installExtensions() {
   try {
-    const result = await installExtension(REACT_DEVELOPER_TOOLS);
+    const extensions = session.defaultSession.extensions;
+    const existing = extensions.getExtension(REACT_DEVELOPER_TOOLS.id);
+    const result =
+      existing ??
+      (await extensions.loadExtension(
+        await downloadChromeExtension(REACT_DEVELOPER_TOOLS.id),
+        { allowFileAccess: true },
+      ));
     console.log(`Extensions installed successfully: ${result.name}`);
-  } catch {
-    console.error("Failed to install extensions");
+  } catch (error) {
+    console.error("Failed to install extensions", error);
   }
 }
 
