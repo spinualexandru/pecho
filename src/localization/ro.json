@@ -109,5 +109,20 @@
   "Korean": "Coreeană",
   "Chinese": "Chineză",
   "Arabic": "Arabă",
-  "Hindi": "Hindi"
+  "Hindi": "Hindi",
+  "Refresh models": "Reîmprospătează modelele",
+  "Ollama connected": "Ollama conectat · {{version}}",
+  "Ollama has no models. Install a model in Ollama, then refresh.": "Ollama nu are modele. Instalează un model în Ollama, apoi reîmprospătează.",
+  "Draft summary. Waiting for a validated result.": "Rezumat provizoriu. Se așteaptă un rezultat validat.",
+  "Cancel generation": "Anulează generarea",
+  "Summary canceled": "Rezumat anulat",
+  "Completed": "Finalizat",
+  "The model returned an invalid summary. Please retry.": "Modelul a returnat un rezumat invalid. Încearcă din nou.",
+  "Decisions": "Decizii",
+  "Action items": "Sarcini de realizat",
+  "Owner": "Responsabil",
+  "Due date": "Termen limită",
+  "Not specified": "Nespecificat",
+  "No decisions recorded": "Nu au fost înregistrate decizii",
+  "No action items recorded": "Nu au fost înregistrate sarcini"
 }

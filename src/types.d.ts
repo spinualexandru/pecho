@@ -12,12 +12,6 @@ interface ElectronWindow {
   close: () => Promise<void>;
 }
 
-interface OllamaModel {
-  name: string;
-  modified_at: string;
-  size: number;
-}
-
 interface RecordingContext {
   getWhisperModels: () => Promise<
     import("./helpers/whisper-helpers").WhisperModelStatus[]
@@ -33,12 +27,18 @@ interface RecordingContext {
     model?: import("./helpers/whisper-helpers").WhisperModel,
     language?: string,
   ) => Promise<string>;
-  summarizeTranscript: (
-    transcript: string,
-    model?: string,
-    language?: string,
-  ) => Promise<string>;
-  getOllamaModels: () => Promise<OllamaModel[]>;
+  startSummary: (
+    request: import("./helpers/summary-contract").SummaryRequest,
+  ) => Promise<void>;
+  cancelSummary: (requestId: string) => Promise<void>;
+  onSummaryEvent: (
+    callback: (
+      event: import("./helpers/summary-contract").SummaryEvent,
+    ) => void,
+  ) => () => void;
+  getOllamaStatus: () => Promise<
+    import("./helpers/summary-contract").OllamaStatus
+  >;
 }
 
 interface GPUInfo {

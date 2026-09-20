@@ -4,5 +4,7 @@ export const RECORDING_CHANNELS = {
   DELETE_WHISPER_MODEL: "recording:delete-whisper-model",
   TRANSCRIBE_AUDIO: "recording:transcribe-audio",
   SUMMARIZE_TRANSCRIPT: "recording:summarize-transcript",
-  GET_OLLAMA_MODELS: "recording:get-ollama-models",
+  GET_OLLAMA_STATUS: "recording:get-ollama-status",
+  CANCEL_SUMMARY: "recording:cancel-summary",
+  SUMMARY_EVENT: "recording:summary-event",
 } as const;

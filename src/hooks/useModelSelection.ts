@@ -1,73 +1,40 @@
-import { useState, useEffect, useCallback } from "react";
-
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 const MODEL_STORAGE_KEY = "pecho-selected-model";
-
 export function useModelSelection() {
-  const [selectedModel, setSelectedModel] = useState<string | null>(null);
-  const [availableModels, setAvailableModels] = useState<OllamaModel[]>([]);
-  const [gpuVRAM, setGpuVRAM] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const loadModels = useCallback(async () => {
-    try {
-      // Fetch available models from Ollama and GPU VRAM in parallel
-      const [models, gpuInfo] = await Promise.all([
-        window.recording.getOllamaModels(),
-        window.systemInfo.getGPUVRAM(),
-      ]);
-
-      console.log(gpuInfo);
-
-      setAvailableModels(models);
-      setGpuVRAM(gpuInfo?.vram ?? null);
-
-      // Check localStorage for cached selection
-      const cachedModel = localStorage.getItem(MODEL_STORAGE_KEY);
-
-      if (cachedModel && models.some((m) => m.name === cachedModel)) {
-        // Use cached model if it exists in available models
-        setSelectedModel(cachedModel);
-      } else if (models.length > 0) {
-        // Use first available model as default
-        const defaultModel = models[0].name;
-        setSelectedModel(defaultModel);
-        localStorage.setItem(MODEL_STORAGE_KEY, defaultModel);
-      }
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to load models";
-      setError(errorMessage);
-      console.error("Error loading Ollama models:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    // State updates follow asynchronous IPC; this effect synchronizes external models.
-    // oxlint-disable-next-line react/set-state-in-effect
-    void loadModels();
-  }, [loadModels]);
-
-  const selectModel = (modelName: string) => {
-    setSelectedModel(modelName);
-    localStorage.setItem(MODEL_STORAGE_KEY, modelName);
+  const [preferred, setPreferred] = useState(() =>
+    localStorage.getItem(MODEL_STORAGE_KEY),
+  );
+  const models = useQuery({
+    queryKey: ["ollama-status"],
+    queryFn: () => window.recording.getOllamaStatus(),
+    staleTime: 30_000,
+    retry: 1,
+  });
+  const gpu = useQuery({
+    queryKey: ["gpu-vram"],
+    queryFn: () => window.systemInfo.getGPUVRAM(),
+    staleTime: Infinity,
+    retry: false,
+  });
+  // A failed refresh invalidates availability even if Query retains stale data.
+  const availableModels = models.isError ? [] : (models.data?.models ?? []);
+  const selectedModel =
+    availableModels.find((model) => model.name === preferred)?.name ??
+    availableModels[0]?.name ??
+    null;
+  const selectModel = (name: string) => {
+    setPreferred(name);
+    localStorage.setItem(MODEL_STORAGE_KEY, name);
   };
-
-  const refreshModels = () => {
-    setIsLoading(true);
-    setError(null);
-    loadModels();
-  };
-
   return {
     selectedModel,
     availableModels,
-    gpuVRAM,
-    isLoading,
-    error,
+    gpuVRAM: gpu.data?.vram ?? null,
+    version: models.isError ? null : models.data?.version,
+    isLoading: models.isFetching,
+    error: models.error?.message ?? null,
     selectModel,
-    refreshModels,
+    refreshModels: () => models.refetch(),
   };
 }

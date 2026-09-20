@@ -109,5 +109,20 @@
   "Korean": "Korean",
   "Chinese": "Chinese",
   "Arabic": "Arabic",
-  "Hindi": "Hindi"
+  "Hindi": "Hindi",
+  "Refresh models": "Refresh models",
+  "Ollama connected": "Ollama connected · {{version}}",
+  "Ollama has no models. Install a model in Ollama, then refresh.": "Ollama has no models. Install a model in Ollama, then refresh.",
+  "Draft summary. Waiting for a validated result.": "Draft summary. Waiting for a validated result.",
+  "Cancel generation": "Cancel generation",
+  "Summary canceled": "Summary canceled",
+  "Completed": "Completed",
+  "The model returned an invalid summary. Please retry.": "The model returned an invalid summary. Please retry.",
+  "Decisions": "Decisions",
+  "Action items": "Action items",
+  "Owner": "Owner",
+  "Due date": "Due date",
+  "Not specified": "Not specified",
+  "No decisions recorded": "No decisions recorded",
+  "No action items recorded": "No action items recorded"
 }

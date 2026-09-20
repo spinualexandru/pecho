@@ -35,8 +35,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { useSummary } from "@/hooks/useSummary";
+import { MeetingSummary } from "@/components/MeetingSummary";
 import { getSummaryLanguage } from "@/helpers/language-helpers";
 
 function HomePage() {
@@ -62,11 +62,19 @@ function HomePage() {
     isLoading: isLoadingModels,
     selectModel,
     error: modelError,
+    version,
+    refreshModels,
   } = useModelSelection();
 
-  const [summary, setSummary] = useState<string>("");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [processingError, setProcessingError] = useState<string | null>(null);
+  const {
+    state: summaryState,
+    start: startSummary,
+    cancel: cancelSummary,
+    reset: resetSummary,
+  } = useSummary();
+  const isProcessing = summaryState.status === "generating";
+  const summary =
+    summaryState.status === "completed" ? summaryState.result : null;
   const [manualInput, setManualInput] = useState<string>("");
   const [useManualMode, setUseManualMode] = useState(false);
 
@@ -77,69 +85,40 @@ function HomePage() {
   };
 
   const handleStartRecording = async () => {
-    setSummary("");
-    setProcessingError(null);
+    resetSummary();
     setUseManualMode(false);
     await startRecording();
   };
 
   const handleStopRecording = async () => {
     await stopRecording();
-    // Transcription happens automatically in useRecording hook
-    // After transcription completes, we'll generate summary
+    // Transcription happens automatically in useRecording.
   };
 
   const handleManualInput = () => {
-    setSummary("");
-    setProcessingError(null);
+    resetSummary();
+    setTranscript("");
     setManualInput("");
     setUseManualMode(true);
   };
 
-  const handleProcessManualInput = async () => {
-    if (manualInput.trim() && selectedModel) {
-      setIsProcessing(true);
-      setProcessingError(null);
-      try {
-        setTranscript(manualInput);
-        const result = await window.recording.summarizeTranscript(
-          manualInput,
-          selectedModel,
-          getSummaryLanguage(),
-        );
-        setSummary(result);
-        setUseManualMode(false);
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Failed to process transcript";
-        setProcessingError(errorMessage);
-        console.error("Processing error:", err);
-      } finally {
-        setIsProcessing(false);
-      }
-    }
+  const handleProcessManualInput = () => {
+    if (!manualInput.trim() || !selectedModel) return;
+    setTranscript(manualInput);
+    setUseManualMode(false);
+    startSummary({
+      transcript: manualInput,
+      model: selectedModel,
+      language: getSummaryLanguage(),
+    });
   };
-
-  const handleGenerateSummary = async () => {
-    if (transcript.trim() && selectedModel) {
-      setIsProcessing(true);
-      setProcessingError(null);
-      try {
-        const result = await window.recording.summarizeTranscript(
-          transcript,
-          selectedModel,
-          getSummaryLanguage(),
-        );
-        setSummary(result);
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Failed to generate summary";
-        setProcessingError(errorMessage);
-        console.error("Processing error:", err);
-      } finally {
-        setIsProcessing(false);
-      }
-    }
+  const handleGenerateSummary = () => {
+    if (transcript.trim() && selectedModel)
+      startSummary({
+        transcript,
+        model: selectedModel,
+        language: getSummaryLanguage(),
+      });
   };
 
   const handleExport = () => {
@@ -155,7 +134,9 @@ function HomePage() {
 
     if (summary) {
       content += `## ${t("AI Summary")}\n\n`;
-      content += summary + "\n\n";
+      content += summary.summary + "\n\n";
+      content += `### ${t("Decisions")}\n\n${summary.decisions.map((text) => `- ${text}`).join("\n")}\n\n`;
+      content += `### ${t("Action items")}\n\n${summary.actionItems.map((item) => `- ${item.task} (${t("Owner")}: ${item.owner || t("Not specified")}; ${t("Due date")}: ${item.dueDate || t("Not specified")})`).join("\n")}\n\n`;
     }
 
     content += "---\n";
@@ -183,6 +164,75 @@ function HomePage() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex flex-1 flex-col items-center gap-6 overflow-auto p-6">
+        <div className="flex w-full max-w-4xl flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-2">
+            <label className="text-sm text-muted-foreground">
+              {t("Ollama Model")}
+            </label>
+            <Select
+              value={selectedModel || ""}
+              onValueChange={selectModel}
+              disabled={
+                isProcessing || isLoadingModels || availableModels.length === 0
+              }
+              dir="ltr"
+            >
+              <SelectTrigger className="w-64">
+                <SelectValue
+                  placeholder={
+                    isLoadingModels
+                      ? t("Loading models...")
+                      : availableModels.length === 0
+                        ? t("No models available")
+                        : t("Select a model")
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent position="item-aligned">
+                {availableModels.map((model) => {
+                  const isCloseToVRAM = isModelCloseToVRAM(model.size);
+                  return (
+                    <SelectItem
+                      key={model.name}
+                      value={model.name}
+                      className={isCloseToVRAM ? "bg-yellow-500/20" : undefined}
+                    >
+                      {isCloseToVRAM && "⚠ "}
+                      {model.name}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void refreshModels()}
+            disabled={isLoadingModels}
+          >
+            {t("Refresh models")}
+          </Button>
+          {version && (
+            <p className="text-xs text-muted-foreground">
+              {t("Ollama connected", { version })}
+            </p>
+          )}
+          {modelError && (
+            <LocalizedError
+              message="Could not load Ollama models. Check that Ollama is running."
+              detail={modelError}
+            />
+          )}
+          {!isLoadingModels && !modelError && availableModels.length === 0 && (
+            <p role="status">
+              {t(
+                "Ollama has no models. Install a model in Ollama, then refresh.",
+              )}
+            </p>
+          )}
+        </div>
         {!isRecording && !transcript && !useManualMode && (
           <div className="flex flex-1 flex-col items-center justify-center gap-2">
             <InitialIcons />
@@ -196,52 +246,11 @@ function HomePage() {
               </p>
             </span>
             <div className="mt-8 flex flex-col items-center gap-4">
-              <div className="flex flex-col items-center gap-2">
-                <label className="text-sm text-muted-foreground">
-                  {t("Ollama Model")}
-                </label>
-                <Select
-                  value={selectedModel || ""}
-                  onValueChange={selectModel}
-                  disabled={isLoadingModels || availableModels.length === 0}
-                  dir="ltr"
-                >
-                  <SelectTrigger className="w-64">
-                    <SelectValue
-                      placeholder={
-                        isLoadingModels
-                          ? t("Loading models...")
-                          : availableModels.length === 0
-                            ? t("No models available")
-                            : t("Select a model")
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent position="item-aligned">
-                    {availableModels.map((model) => {
-                      const isCloseToVRAM = isModelCloseToVRAM(model.size);
-                      return (
-                        <SelectItem
-                          key={model.name}
-                          value={model.name}
-                          className={
-                            isCloseToVRAM ? "bg-yellow-500/20" : undefined
-                          }
-                        >
-                          {isCloseToVRAM && "⚠ "}
-                          {model.name}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
-
               <div className="flex gap-4">
                 <Button
                   size="lg"
                   onClick={handleStartRecording}
-                  disabled={isProcessing || !selectedModel}
+                  disabled={isProcessing}
                 >
                   <Mic className="mr-2 h-5 w-5" />
                   {t("Voice Recording")}
@@ -250,7 +259,7 @@ function HomePage() {
                   size="lg"
                   variant="outline"
                   onClick={handleManualInput}
-                  disabled={isProcessing || !selectedModel}
+                  disabled={isProcessing}
                 >
                   <FileText className="mr-2 h-5 w-5" />
                   {t("Manual Input")}
@@ -262,12 +271,6 @@ function HomePage() {
                     "Voice recording captures both your microphone and system audio (meeting participants)",
                   )}
                 </p>
-              )}
-              {!!modelError && (
-                <LocalizedError
-                  message="Could not load Ollama models. Check that Ollama is running."
-                  detail={modelError}
-                />
               )}
             </div>
             {error && (
@@ -307,7 +310,9 @@ function HomePage() {
                   </Button>
                   <Button
                     onClick={handleProcessManualInput}
-                    disabled={!manualInput.trim() || isProcessing}
+                    disabled={
+                      !manualInput.trim() || isProcessing || !selectedModel
+                    }
                   >
                     <Sparkles className="mr-2 h-4 w-4" />
                     {t("Generate Summary")}
@@ -413,7 +418,10 @@ function HomePage() {
                     </CardDescription>
                   </div>
                   {!summary && !isProcessing && (
-                    <Button onClick={handleGenerateSummary}>
+                    <Button
+                      onClick={handleGenerateSummary}
+                      disabled={!selectedModel}
+                    >
                       <Sparkles className="mr-2 h-4 w-4" />
                       {t("Generate Summary")}
                     </Button>
@@ -436,9 +444,20 @@ function HomePage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center justify-center py-8">
-                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-                  </div>
+                  <p className="mb-4 text-sm text-muted-foreground">
+                    {t("Draft summary. Waiting for a validated result.")}
+                  </p>
+                  <p
+                    data-testid="summary-preview"
+                    className="mb-4 whitespace-pre-wrap"
+                  >
+                    {summaryState.status === "generating"
+                      ? summaryState.preview
+                      : ""}
+                  </p>
+                  <Button variant="outline" onClick={cancelSummary}>
+                    {t("Cancel generation")}
+                  </Button>
                 </CardContent>
               </Card>
             )}
@@ -449,24 +468,20 @@ function HomePage() {
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
                       <Sparkles className="h-5 w-5" />
-                      {t("AI Summary")}
+                      {t("AI Summary")} · {t("Completed")}
                     </CardTitle>
                     <Badge variant="secondary">{t("Powered by Ollama")}</Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <ScrollArea className="h-64 w-full rounded-md border p-4">
-                    <div className="prose prose-sm max-w-none dark:prose-invert">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {summary}
-                      </ReactMarkdown>
-                    </div>
+                    <MeetingSummary result={summary} />
                   </ScrollArea>
                 </CardContent>
               </Card>
             )}
 
-            {processingError && (
+            {summaryState.status === "failed" && (
               <Card className="border-destructive">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-destructive">
@@ -476,11 +491,19 @@ function HomePage() {
                 </CardHeader>
                 <CardContent>
                   <LocalizedError
-                    message="Could not generate the summary. Please retry."
-                    detail={processingError}
+                    message={
+                      summaryState.code === "malformed"
+                        ? "The model returned an invalid summary. Please retry."
+                        : "Could not generate the summary. Please retry."
+                    }
+                    detail={summaryState.detail}
                   />
                 </CardContent>
               </Card>
+            )}
+
+            {summaryState.status === "canceled" && (
+              <p role="status">{t("Summary canceled")}</p>
             )}
 
             <div className="flex justify-center gap-4">
