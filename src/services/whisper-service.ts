@@ -249,6 +249,10 @@ export async function transcribeAudio(
       states.set(modelId, { phase: "transcribing" });
       const result = await model(audioData, {
         return_timestamps: false,
+        // Whisper's feature extractor otherwise truncates after 30 seconds.
+        // Overlapping windows let the pipeline merge text across a meeting.
+        chunk_length_s: 30,
+        stride_length_s: 5,
         ...(modelId.endsWith(".en") ? {} : { language, task: "transcribe" }),
       });
       return Array.isArray(result)

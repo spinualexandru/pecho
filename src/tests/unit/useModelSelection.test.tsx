@@ -31,12 +31,13 @@ beforeEach(() => {
     },
   });
 });
-it("restores a saved model even when the independent GPU probe fails", async () => {
+it("restores a saved model without relying on GPU inventory", async () => {
   localStorage.setItem("pecho-selected-model", "saved");
   const { result } = setup();
   await waitFor(() => expect(result.current.isLoading).toBe(false));
   expect(result.current.selectedModel).toBe("saved");
   expect(result.current.availableModels).toEqual(models);
+  expect(window.systemInfo.getGPUVRAM).not.toHaveBeenCalled();
 });
 it("refreshes stale models and clears removed selections for empty and unreachable states", async () => {
   const { result } = setup();

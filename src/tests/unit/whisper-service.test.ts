@@ -70,8 +70,23 @@ describe("Whisper model lifecycle", () => {
     );
     expect(mocks.transcriber).toHaveBeenCalledWith(expect.any(Float32Array), {
       return_timestamps: false,
+      chunk_length_s: 30,
+      stride_length_s: 5,
       language: "romanian",
       task: "transcribe",
+    });
+  });
+
+  it("passes speech beyond the first Whisper window through overlapping chunking", async () => {
+    await seed();
+    const service = await import("@/services/whisper-service");
+    const audio = new Float32Array(46 * 16000);
+    audio[35 * 16000] = 0.5;
+    await service.transcribeAudio(audio);
+    expect(mocks.transcriber).toHaveBeenCalledWith(audio, {
+      return_timestamps: false,
+      chunk_length_s: 30,
+      stride_length_s: 5,
     });
   });
 

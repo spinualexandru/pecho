@@ -11,12 +11,6 @@ export function useModelSelection() {
     staleTime: 30_000,
     retry: 1,
   });
-  const gpu = useQuery({
-    queryKey: ["gpu-vram"],
-    queryFn: () => window.systemInfo.getGPUVRAM(),
-    staleTime: Infinity,
-    retry: false,
-  });
   // A failed refresh invalidates availability even if Query retains stale data.
   const availableModels = models.isError ? [] : (models.data?.models ?? []);
   const selectedModel =
@@ -30,7 +24,6 @@ export function useModelSelection() {
   return {
     selectedModel,
     availableModels,
-    gpuVRAM: gpu.data?.vram ?? null,
     version: models.isError ? null : models.data?.version,
     isLoading: models.isFetching,
     error: models.error?.message ?? null,

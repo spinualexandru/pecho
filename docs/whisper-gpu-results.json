@@ -1,0 +1,441 @@
+{
+  "recordedAt": "2026-09-20T20:56:40.196Z",
+  "hardware": {
+    "cpu": "Intel(R) Core(TM) i9-14900HX",
+    "logicalCpus": 32,
+    "ramBytes": 67010199552,
+    "kernel": "7.2.6-1-cachyos",
+    "gpu": "name, driver_version, memory.total [MiB], memory.used [MiB]\nNVIDIA GeForce RTX 4090 Laptop GPU, 615.71.09, 16376 MiB, 1019 MiB\n"
+  },
+  "runtime": {
+    "node": "24.21.0",
+    "acorn": "8.18.0",
+    "ada": "4.0.0",
+    "amaro": "1.1.11",
+    "ares": "1.34.8",
+    "brotli": "1.2.0",
+    "cldr": "48.0",
+    "icu": "78.2",
+    "llhttp": "9.4.3",
+    "merve": "1.2.2",
+    "modules": "149",
+    "napi": "10",
+    "nbytes": "0.1.4",
+    "ncrypto": "0.0.1",
+    "nghttp2": "1.70.0",
+    "nghttp3": "",
+    "ngtcp2": "",
+    "openssl": "0.0.0",
+    "simdjson": "4.6.7",
+    "simdutf": "7.7.0",
+    "sqlite": "3.53.4",
+    "tz": "2025c",
+    "undici": "7.29.1",
+    "unicode": "17.0",
+    "uv": "1.52.1",
+    "uvwasi": "0.0.23",
+    "v8": "15.2.124.28-electron.0",
+    "zlib": "1.3.2.1-motley",
+    "zstd": "1.6.0",
+    "electron": "44.4.3",
+    "chrome": "152.0.7977.130"
+  },
+  "backends": [
+    {
+      "name": "cpu",
+      "bundled": true
+    },
+    {
+      "name": "webgpu",
+      "bundled": true
+    },
+    {
+      "name": "cuda",
+      "bundled": false
+    },
+    {
+      "name": "tensorrt",
+      "bundled": false
+    }
+  ],
+  "model": {
+    "id": "Xenova/whisper-tiny.en",
+    "revision": "79fb389fc764e7c395bd330e9531d9d32ada7049",
+    "q8CacheBytes": 42985755,
+    "fp16OnnxBytes": 76122036
+  },
+  "fixture": {
+    "revision": "fbe92bd97d48f3ec17779d8d8f2964e1c6bc7634",
+    "file": "jfk.wav",
+    "sampleRate": 16000,
+    "shortSeconds": 11,
+    "longSeconds": 55,
+    "longMethod": "Five concatenated copies; synthetic repetition, not meeting audio"
+  },
+  "native": [
+    {
+      "requestedDevice": "cpu",
+      "failureInjection": null,
+      "dtype": "q8",
+      "rssBeforeBytes": 270782464,
+      "runs": [
+        {
+          "name": "short",
+          "repeat": 0,
+          "audioSeconds": 11,
+          "inferenceMs": 1199.5,
+          "text": " And so my fellow Americans ask not what your country can do for you, ask what you can do for your country.",
+          "rssAfterBytes": 1166254080
+        },
+        {
+          "name": "short",
+          "repeat": 1,
+          "audioSeconds": 11,
+          "inferenceMs": 1079.56,
+          "text": " And so my fellow Americans ask not what your country can do for you, ask what you can do for your country.",
+          "rssAfterBytes": 1231716352
+        },
+        {
+          "name": "short",
+          "repeat": 2,
+          "audioSeconds": 11,
+          "inferenceMs": 1088.81,
+          "text": " And so my fellow Americans ask not what your country can do for you, ask what you can do for your country.",
+          "rssAfterBytes": 1235369984
+        },
+        {
+          "name": "long-repeat",
+          "repeat": 0,
+          "audioSeconds": 55,
+          "inferenceMs": 4893.01,
+          "text": " And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for your country. And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for your country. And so my fellow Americans ask not what your country can do for your country. And so my fellow Americans ask not what your country can do for you ask what you can do for your country.",
+          "rssAfterBytes": 1259134976
+        },
+        {
+          "name": "long-repeat",
+          "repeat": 1,
+          "audioSeconds": 55,
+          "inferenceMs": 4564.93,
+          "text": " And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for your country. And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for your country. And so my fellow Americans ask not what your country can do for your country. And so my fellow Americans ask not what your country can do for you ask what you can do for your country.",
+          "rssAfterBytes": 1015148544
+        },
+        {
+          "name": "long-repeat",
+          "repeat": 2,
+          "audioSeconds": 55,
+          "inferenceMs": 4752,
+          "text": " And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for your country. And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for your country. And so my fellow Americans ask not what your country can do for your country. And so my fellow Americans ask not what your country can do for you ask what you can do for your country.",
+          "rssAfterBytes": 1232400384
+        }
+      ],
+      "sessionDevice": "cpu",
+      "sessionDtype": "q8",
+      "loadMs": 890.9037969999999,
+      "rssLoadedBytes": 469856256,
+      "sampledPeakRssBytes": 1479012352,
+      "processLifetimeMaxRssBytes": 1496518656,
+      "nvidiaProcessMemoryMiBAfterLoad": null,
+      "nvidiaProcessMemoryMiBAfterInference": null
+    },
+    {
+      "requestedDevice": "webgpu",
+      "failureInjection": null,
+      "dtype": "q8",
+      "rssBeforeBytes": 271724544,
+      "runs": [
+        {
+          "name": "short",
+          "repeat": 0,
+          "audioSeconds": 11,
+          "inferenceMs": 2627.53,
+          "text": " And so my fellow Americans ask not what your country can do for you, ask what you can do for your country.",
+          "rssAfterBytes": 1025982464
+        },
+        {
+          "name": "short",
+          "repeat": 1,
+          "audioSeconds": 11,
+          "inferenceMs": 2587.55,
+          "text": " And so my fellow Americans ask not what your country can do for you, ask what you can do for your country.",
+          "rssAfterBytes": 1026957312
+        },
+        {
+          "name": "short",
+          "repeat": 2,
+          "audioSeconds": 11,
+          "inferenceMs": 2704.14,
+          "text": " And so my fellow Americans ask not what your country can do for you, ask what you can do for your country.",
+          "rssAfterBytes": 1053220864
+        },
+        {
+          "name": "long-repeat",
+          "repeat": 0,
+          "audioSeconds": 55,
+          "inferenceMs": 17329.13,
+          "text": " And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for your country. And so my fellow Americans ask not what your country can do for your country. And so my fellow Americans ask not what your country can do for you ask what you can do for your country.",
+          "rssAfterBytes": 1044647936
+        },
+        {
+          "name": "long-repeat",
+          "repeat": 1,
+          "audioSeconds": 55,
+          "inferenceMs": 16806.41,
+          "text": " And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for your country. And so my fellow Americans ask not what your country can do for your country. And so my fellow Americans ask not what your country can do for you ask what you can do for your country.",
+          "rssAfterBytes": 1000873984
+        },
+        {
+          "name": "long-repeat",
+          "repeat": 2,
+          "audioSeconds": 55,
+          "inferenceMs": 16835.42,
+          "text": " And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for your country. And so my fellow Americans ask not what your country can do for your country. And so my fellow Americans ask not what your country can do for you ask what you can do for your country.",
+          "rssAfterBytes": 1000148992
+        }
+      ],
+      "sessionDevice": "webgpu",
+      "sessionDtype": "q8",
+      "loadMs": 1296.9631160000001,
+      "rssLoadedBytes": 484634624,
+      "sampledPeakRssBytes": 1499865088,
+      "processLifetimeMaxRssBytes": 1499865088,
+      "nvidiaProcessMemoryMiBAfterLoad": 71,
+      "nvidiaProcessMemoryMiBAfterInference": 570
+    },
+    {
+      "requestedDevice": "cuda",
+      "failureInjection": "unavailable-provider",
+      "dtype": "q8",
+      "rssBeforeBytes": 271474688,
+      "runs": [
+        {
+          "name": "short",
+          "repeat": 0,
+          "audioSeconds": 11,
+          "inferenceMs": 1095.27,
+          "text": " And so my fellow Americans ask not what your country can do for you, ask what you can do for your country.",
+          "rssAfterBytes": 1215664128
+        }
+      ],
+      "initializationError": "Error: OrtSessionOptionsAppendExecutionProvider_Cuda: Failed to load shared library",
+      "failedAttemptMs": 39.23349300000007,
+      "sessionDevice": "cpu",
+      "sessionDtype": "q8",
+      "loadMs": 991.3050230000001,
+      "rssLoadedBytes": 486387712,
+      "sampledPeakRssBytes": 1214353408,
+      "processLifetimeMaxRssBytes": 1215926272,
+      "nvidiaProcessMemoryMiBAfterLoad": null,
+      "nvidiaProcessMemoryMiBAfterInference": null
+    },
+    {
+      "requestedDevice": "dml",
+      "failureInjection": "unsupported-platform",
+      "dtype": "q8",
+      "rssBeforeBytes": 269881344,
+      "runs": [
+        {
+          "name": "short",
+          "repeat": 0,
+          "audioSeconds": 11,
+          "inferenceMs": 1109.61,
+          "text": " And so my fellow Americans ask not what your country can do for you, ask what you can do for your country.",
+          "rssAfterBytes": 1209020416
+        }
+      ],
+      "initializationError": "Error: Unsupported device: \"dml\". Should be one of: cuda, webgpu, cpu.",
+      "failedAttemptMs": 18.70319799999993,
+      "sessionDevice": "cpu",
+      "sessionDtype": "q8",
+      "loadMs": 1053.7504210000002,
+      "rssLoadedBytes": 482734080,
+      "sampledPeakRssBytes": 1207971840,
+      "processLifetimeMaxRssBytes": 1209020416,
+      "nvidiaProcessMemoryMiBAfterLoad": null,
+      "nvidiaProcessMemoryMiBAfterInference": null
+    },
+    {
+      "requestedDevice": "webgpu",
+      "failureInjection": "injected-initialization",
+      "dtype": "q8",
+      "rssBeforeBytes": 271343616,
+      "runs": [
+        {
+          "name": "short",
+          "repeat": 0,
+          "audioSeconds": 11,
+          "inferenceMs": 1108.28,
+          "text": " And so my fellow Americans ask not what your country can do for you, ask what you can do for your country.",
+          "rssAfterBytes": 1165811712
+        }
+      ],
+      "initializationError": "Error: Injected WebGPU initialization failure (benchmark only)",
+      "failedAttemptMs": 0.01725299999998242,
+      "sessionDevice": "cpu",
+      "sessionDtype": "q8",
+      "loadMs": 831.5014359999999,
+      "rssLoadedBytes": 472305664,
+      "sampledPeakRssBytes": 1163452416,
+      "processLifetimeMaxRssBytes": 1165811712,
+      "nvidiaProcessMemoryMiBAfterLoad": null,
+      "nvidiaProcessMemoryMiBAfterInference": null
+    },
+    {
+      "requestedDevice": "webgpu",
+      "failureInjection": null,
+      "dtype": "fp16",
+      "rssBeforeBytes": 270446592,
+      "runs": [
+        {
+          "name": "short",
+          "repeat": 0,
+          "audioSeconds": 11,
+          "inferenceMs": 1337.23,
+          "text": " And so my fellow Americans ask not what your country can do for you, ask what you can do for your country.",
+          "rssAfterBytes": 1008193536
+        },
+        {
+          "name": "short",
+          "repeat": 1,
+          "audioSeconds": 11,
+          "inferenceMs": 675.24,
+          "text": " And so my fellow Americans ask not what your country can do for you, ask what you can do for your country.",
+          "rssAfterBytes": 1010204672
+        },
+        {
+          "name": "short",
+          "repeat": 2,
+          "audioSeconds": 11,
+          "inferenceMs": 776.65,
+          "text": " And so my fellow Americans ask not what your country can do for you, ask what you can do for your country.",
+          "rssAfterBytes": 1018863616
+        },
+        {
+          "name": "long-repeat",
+          "repeat": 0,
+          "audioSeconds": 55,
+          "inferenceMs": 4003.29,
+          "text": " And so my fellow Americans ask not what your country can do for you ask what you can do for your country. And so my fellow Americans ask not what your country can do for you ask what you can do for your country. And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for you ask what you can do for your country.",
+          "rssAfterBytes": 1054801920
+        },
+        {
+          "name": "long-repeat",
+          "repeat": 1,
+          "audioSeconds": 55,
+          "inferenceMs": 3304.63,
+          "text": " And so my fellow Americans ask not what your country can do for you ask what you can do for your country. And so my fellow Americans ask not what your country can do for you ask what you can do for your country. And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for you ask what you can do for your country.",
+          "rssAfterBytes": 1051267072
+        },
+        {
+          "name": "long-repeat",
+          "repeat": 2,
+          "audioSeconds": 55,
+          "inferenceMs": 3746.43,
+          "text": " And so my fellow Americans ask not what your country can do for you ask what you can do for your country. And so my fellow Americans ask not what your country can do for you ask what you can do for your country. And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for you ask what you can do for your country.",
+          "rssAfterBytes": 1092018176
+        }
+      ],
+      "sessionDevice": "webgpu",
+      "sessionDtype": "fp16",
+      "loadMs": 1417.52269,
+      "rssLoadedBytes": 465756160,
+      "sampledPeakRssBytes": 1491644416,
+      "processLifetimeMaxRssBytes": 1491906560,
+      "nvidiaProcessMemoryMiBAfterLoad": 184,
+      "nvidiaProcessMemoryMiBAfterInference": 661
+    }
+  ],
+  "packaged": [
+    {
+      "boundary": "Hardened shipped executable, actual renderer IPC",
+      "disableGpu": false,
+      "adapter": {
+        "api": true,
+        "adapter": false,
+        "info": null,
+        "features": []
+      },
+      "runs": [
+        {
+          "name": "short",
+          "audioSeconds": 11,
+          "ipcMs": 2027.992511999997,
+          "text": " And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+        },
+        {
+          "name": "long-repeat",
+          "audioSeconds": 55,
+          "ipcMs": 11359.959692000004,
+          "text": " And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for your country. And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for you, ask what you can do for your country. And so my fellow Americans ask not what your country can do for your country. And so my fellow Americans ask not what your country can do for your country. And so my fellow Americans ask not what your country can do for you ask what you can do for your country."
+        },
+        {
+          "name": "tail-after-35s-silence",
+          "audioSeconds": 46,
+          "ipcMs": 4160.554380000001,
+          "text": " you And so, my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+        }
+      ],
+      "loadMs": 865.5242719999951
+    },
+    {
+      "boundary": "Hardened shipped executable, actual renderer IPC",
+      "disableGpu": true,
+      "adapter": {
+        "api": true,
+        "adapter": false,
+        "info": null,
+        "features": []
+      },
+      "runs": [
+        {
+          "name": "short",
+          "audioSeconds": 11,
+          "ipcMs": 1896.5866620000015,
+          "text": " And so my fellow Americans ask not what your country can do for you, ask what you can do for your country."
+        }
+      ],
+      "loadMs": 862.2317089999997
+    }
+  ],
+  "profiles": [
+    {
+      "candidate": "cpu-q8",
+      "providers": {
+        "CPUExecutionProvider": 204
+      }
+    },
+    {
+      "candidate": "cpu-q8",
+      "providers": {
+        "CPUExecutionProvider": 9283
+      }
+    },
+    {
+      "candidate": "webgpu-fp16",
+      "providers": {
+        "WebGpuExecutionProvider": 159,
+        "CPUExecutionProvider": 59
+      }
+    },
+    {
+      "candidate": "webgpu-fp16",
+      "providers": {
+        "WebGpuExecutionProvider": 7488,
+        "CPUExecutionProvider": 3601
+      }
+    },
+    {
+      "candidate": "webgpu-q8",
+      "providers": {
+        "CPUExecutionProvider": 104,
+        "WebGpuExecutionProvider": 279
+      }
+    },
+    {
+      "candidate": "webgpu-q8",
+      "providers": {
+        "CPUExecutionProvider": 5034,
+        "WebGpuExecutionProvider": 10112
+      }
+    }
+  ]
+}
