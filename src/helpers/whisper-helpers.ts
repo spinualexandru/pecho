@@ -1,12 +1,17 @@
+import { getTranscriberLanguage, isSpeechLanguage } from "./language-helpers";
 export type WhisperModel =
   | "Xenova/whisper-tiny.en"
   | "Xenova/whisper-base.en"
-  | "Xenova/whisper-small.en";
+  | "Xenova/whisper-small.en"
+  | "Xenova/whisper-tiny";
 
 export interface WhisperModelInfo {
   id: WhisperModel;
   name: string;
-  description: string;
+  description:
+    | "Fastest model, lower accuracy"
+    | "Good balance of speed and accuracy"
+    | "Higher accuracy, slower";
 }
 
 export const WHISPER_MODELS: WhisperModelInfo[] = [
@@ -25,16 +30,32 @@ export const WHISPER_MODELS: WhisperModelInfo[] = [
     name: "Small",
     description: "Higher accuracy, slower",
   },
+  {
+    id: "Xenova/whisper-tiny",
+    name: "Tiny multilingual",
+    description: "Fastest model, lower accuracy",
+  },
 ];
 
 const WHISPER_MODEL_KEY = "whisper_model";
 
 export function getWhisperModel(): WhisperModel {
   const saved = localStorage.getItem(WHISPER_MODEL_KEY);
-  return isWhisperModel(saved) ? saved : "Xenova/whisper-tiny.en";
+  const model = isWhisperModel(saved) ? saved : "Xenova/whisper-tiny.en";
+  // Migrate an older non-English preference without ever feeding it to .en.
+  const compatible = isModelCompatible(model, getTranscriberLanguage())
+    ? model
+    : "Xenova/whisper-tiny";
+  if (saved !== compatible) localStorage.setItem(WHISPER_MODEL_KEY, compatible);
+  return compatible;
 }
 
 export function setWhisperModel(model: WhisperModel): void {
+  if (
+    !isWhisperModel(model) ||
+    !isModelCompatible(model, getTranscriberLanguage())
+  )
+    throw new Error("Unsupported model and transcription language combination");
   localStorage.setItem(WHISPER_MODEL_KEY, model);
 }
 
@@ -65,4 +86,13 @@ export interface WhisperModelStatus {
 
 export function formatModelBytes(bytes: number): string {
   return `${(bytes / 1_000_000).toFixed(1)} MB`;
+}
+
+export function isModelCompatible(
+  model: WhisperModel,
+  language: string,
+): boolean {
+  return (
+    isSpeechLanguage(language) && (language === "en" || !model.endsWith(".en"))
+  );
 }

@@ -1,16 +1,28 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
+import en from "./en.json";
+import ro from "./ro.json";
+import { getAppLanguage } from "@/helpers/language_helpers";
 
-i18n.use(initReactI18next).init({
+export type TranslationKey = keyof typeof en;
+// Adding a UI message requires a translation in both interface languages.
+const romanian: Record<TranslationKey, string> = ro;
+
+declare module "i18next" {
+  interface CustomTypeOptions {
+    defaultNS: "translation";
+    keySeparator: false;
+    nsSeparator: false;
+    resources: { translation: typeof en };
+  }
+}
+
+void i18n.use(initReactI18next).init({
+  lng: getAppLanguage(),
   fallbackLng: "en",
-  resources: {
-    en: {
-      translation: {
-        appName: "Personal Echo",
-        titleHomePage: "Home",
-        titleSecondPage: "Settings",
-        titleSlogan: "Local. Offline. Secure.",
-      },
-    },
-  },
+  supportedLngs: ["en", "ro"],
+  keySeparator: false,
+  nsSeparator: false,
+  interpolation: { escapeValue: false },
+  resources: { en: { translation: en }, ro: { translation: romanian } },
 });

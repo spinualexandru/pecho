@@ -1,6 +1,12 @@
+import type { TranslationKey } from "@/localization/i18n";
 import { useState, useRef, useCallback } from "react";
 import { getWhisperModel } from "@/helpers/whisper-helpers";
 import { getTranscriberLanguage } from "@/helpers/language-helpers";
+
+interface RecordingError {
+  message: TranslationKey;
+  detail?: string;
+}
 
 interface UseRecordingReturn {
   isRecording: boolean;
@@ -12,7 +18,7 @@ interface UseRecordingReturn {
   pauseRecording: () => void;
   resumeRecording: () => void;
   setTranscript: (transcript: string) => void;
-  error: string | null;
+  error: RecordingError | null;
   isTranscribing: boolean;
 }
 
@@ -21,9 +27,13 @@ export function useRecording(): UseRecordingReturn {
   const [isPaused, setIsPaused] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [duration, setDuration] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<RecordingError | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
 
+  const preferencesRef = useRef({
+    model: getWhisperModel(),
+    language: getTranscriberLanguage(),
+  });
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
@@ -53,15 +63,19 @@ export function useRecording(): UseRecordingReturn {
       // Send to main process for transcription
       const transcriptText = await window.recording.transcribeAudio(
         new Float32Array(channelData).buffer,
-        getWhisperModel(),
-        getTranscriberLanguage(),
+        preferencesRef.current.model,
+        preferencesRef.current.language,
       );
 
       setTranscript(transcriptText);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to transcribe audio";
-      setError(errorMessage);
+      setError({
+        message:
+          "Could not transcribe audio. Check the model and language in Settings, then retry.",
+        detail: errorMessage,
+      });
       console.error("Transcription error:", err);
     } finally {
       setIsTranscribing(false);
@@ -75,6 +89,10 @@ export function useRecording(): UseRecordingReturn {
   const startRecording = useCallback(async () => {
     try {
       setError(null);
+      preferencesRef.current = {
+        model: getWhisperModel(),
+        language: getTranscriberLanguage(),
+      };
       setTranscript("");
       setDuration(0);
       audioChunksRef.current = [];
@@ -126,9 +144,10 @@ export function useRecording(): UseRecordingReturn {
           "System audio capture failed, continuing with microphone only:",
           displayErr,
         );
-        setError(
-          "Note: Only capturing microphone. System audio capture was declined.",
-        );
+        setError({
+          message:
+            "Note: Only capturing microphone. System audio capture was declined.",
+        });
       }
 
       // Use the mixed stream for recording
@@ -168,7 +187,10 @@ export function useRecording(): UseRecordingReturn {
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to start recording";
-      setError(errorMessage);
+      setError({
+        message: "Could not start recording. Check microphone access.",
+        detail: errorMessage,
+      });
       console.error("Recording error:", err);
     }
   }, [processAudioBlob]);

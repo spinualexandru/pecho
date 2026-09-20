@@ -9,6 +9,7 @@ for (const id of [
   "Xenova/whisper-tiny.en",
   "Xenova/whisper-base.en",
   "Xenova/whisper-small.en",
+  "Xenova/whisper-tiny",
 ]) {
   const response = await fetch(`https://huggingface.co/api/models/${id}`);
   if (!response.ok) throw new Error(`Cannot inspect ${id}: ${response.status}`);

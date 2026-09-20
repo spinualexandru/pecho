@@ -9,6 +9,7 @@ import { mkdir, open, rename, rm, stat } from "node:fs/promises";
 import {
   WHISPER_MODELS,
   isWhisperModel,
+  isModelCompatible,
   type WhisperModel,
   type WhisperModelStatus,
 } from "@/helpers/whisper-helpers";
@@ -237,14 +238,18 @@ export async function transcribeAudio(
   languageCode: string = "en",
 ): Promise<string> {
   try {
+    assertModel(modelId);
+    const language = getWhisperLanguageCode(languageCode);
+    if (!isModelCompatible(modelId, languageCode))
+      throw new Error(
+        "This English-only model cannot transcribe the selected language. Select a multilingual model in Settings.",
+      );
     return await exclusive(modelId, async () => {
       const model = await loadWhisper(modelId);
       states.set(modelId, { phase: "transcribing" });
       const result = await model(audioData, {
         return_timestamps: false,
-        ...(modelId.endsWith(".en")
-          ? {}
-          : { language: getWhisperLanguageCode(languageCode) }),
+        ...(modelId.endsWith(".en") ? {} : { language, task: "transcribe" }),
       });
       return Array.isArray(result)
         ? result.map((item) => item.text).join(" ")

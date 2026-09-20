@@ -1,3 +1,6 @@
+import { setAppLanguage } from "@/helpers/language_helpers";
+import langs from "@/localization/langs";
+import { useTranslation } from "react-i18next";
 import { WhisperModels } from "@/components/WhisperModels";
 import React, { useEffect, useState } from "react";
 import {
@@ -19,12 +22,14 @@ import {
 import { getCurrentTheme, setTheme } from "@/helpers/theme_helpers";
 import {
   getWhisperModel,
+  isModelCompatible,
   setWhisperModel,
   WHISPER_MODELS,
   type WhisperModel,
 } from "@/helpers/whisper-helpers";
 import {
   getTranscriberLanguage,
+  isSpeechLanguage,
   setTranscriberLanguage,
   getSummaryLanguage,
   setSummaryLanguage,
@@ -35,6 +40,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 function Settings() {
+  const { t, i18n } = useTranslation();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [whisperModel, setWhisperModelState] =
     useState<WhisperModel>(getWhisperModel);
@@ -66,32 +72,37 @@ function Settings() {
   };
 
   const handleTranscriberLanguageChange = (languageCode: string) => {
+    if (!isSpeechLanguage(languageCode)) return;
     setTranscriberLanguageState(languageCode);
     setTranscriberLanguage(languageCode);
+    const compatible = getWhisperModel();
+    setWhisperModel(compatible);
+    setWhisperModelState(compatible);
   };
 
   const handleSummaryLanguageChange = (languageCode: string) => {
+    if (!isSpeechLanguage(languageCode)) return;
     setSummaryLanguageState(languageCode);
     setSummaryLanguage(languageCode);
   };
 
   return (
     <div className="container mx-auto max-w-2xl p-6">
-      <h1 className="mb-6 text-3xl font-bold">Settings</h1>
+      <h1 className="mb-6 text-3xl font-bold">{t("Settings")}</h1>
       <ScrollArea className="flex h-[480px] max-h-screen w-full flex-col rounded-md border p-4">
         <Card className="mb-4">
           <CardHeader>
-            <CardTitle>Appearance</CardTitle>
+            <CardTitle>{t("Appearance")}</CardTitle>
             <CardDescription>
-              Customize the appearance of the application
+              {t("Customize the appearance of the application")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="theme-toggle">Dark Mode</Label>
+                <Label htmlFor="theme-toggle">{t("Dark Mode")}</Label>
                 <p className="text-sm text-muted-foreground">
-                  Toggle between light and dark theme
+                  {t("Toggle between light and dark theme")}
                 </p>
               </div>
               <Switch
@@ -105,31 +116,41 @@ function Settings() {
 
         <Card className="mb-4">
           <CardHeader>
-            <CardTitle>Transcription</CardTitle>
+            <CardTitle>{t("Transcription")}</CardTitle>
             <CardDescription>
-              Configure the speech recognition model
+              {t("Configure the speech recognition model")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="whisper-model">Whisper Model</Label>
+              <Label htmlFor="whisper-model">{t("Whisper Model")}</Label>
               <Select
                 value={whisperModel}
                 onValueChange={handleWhisperModelChange}
               >
-                <SelectTrigger>
+                <SelectTrigger id="whisper-model">
                   <SelectValue
-                    placeholder="Select a model"
+                    placeholder={t("Select a model")}
                     className="!text-left"
                   />
                 </SelectTrigger>
                 <SelectContent>
                   {WHISPER_MODELS.map((model) => (
-                    <SelectItem key={model.id} value={model.id}>
+                    <SelectItem
+                      key={model.id}
+                      value={model.id}
+                      disabled={
+                        !isModelCompatible(model.id, transcriberLanguage)
+                      }
+                    >
                       <div className="flex flex-col text-left">
-                        <span className="font-medium">{model.name}</span>
+                        <span className="font-medium">
+                          {model.id.endsWith(".en")
+                            ? `${model.name} · ${t("English only")}`
+                            : t("Tiny multilingual")}
+                        </span>
                         <span className="text-sm text-muted-foreground">
-                          {model.description}
+                          {t(model.description)}
                         </span>
                       </div>
                     </SelectItem>
@@ -137,68 +158,106 @@ function Settings() {
                 </SelectContent>
               </Select>
               <p className="text-sm text-muted-foreground">
-                Choose the Whisper model for audio transcription. Larger models
-                provide better accuracy but require more memory and processing
-                time.
+                {t(
+                  "Choose the Whisper model for audio transcription. Larger models provide better accuracy but require more memory and processing time.",
+                )}
               </p>
             </div>
+            {transcriberLanguage !== "en" && (
+              <p role="status" className="text-sm text-muted-foreground">
+                {t(
+                  "A multilingual model is required for this language. Tiny multilingual is selected automatically.",
+                )}
+              </p>
+            )}
             <WhisperModels selectedModel={whisperModel} />
           </CardContent>
         </Card>
 
         <Card className="mb-4">
           <CardHeader>
-            <CardTitle>Languages</CardTitle>
+            <CardTitle>{t("Languages")}</CardTitle>
             <CardDescription>
-              Configure language settings for transcription and summaries
+              {t("Configure language settings for transcription and summaries")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
+              <Label htmlFor="interface-language">
+                {t("Interface Language")}
+              </Label>
+              <Select
+                value={i18n.resolvedLanguage}
+                onValueChange={(value) => setAppLanguage(value, i18n)}
+              >
+                <SelectTrigger id="interface-language">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {langs.map((language) => (
+                    <SelectItem key={language.key} value={language.key}>
+                      {language.nativeName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                {t(
+                  "Interface language does not change transcription or summaries.",
+                )}
+              </p>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="transcriber-language">
-                Transcription Language
+                {t("Transcription Language")}
               </Label>
               <Select
                 value={transcriberLanguage}
                 onValueChange={handleTranscriberLanguageChange}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select transcription language" />
+                <SelectTrigger id="transcriber-language">
+                  <SelectValue
+                    placeholder={t("Select transcription language")}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {SUPPORTED_LANGUAGES.map((language) => (
                     <SelectItem key={language.code} value={language.code}>
-                      {language.name}
+                      {t(language.name)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <p className="text-sm text-muted-foreground">
-                Language that Whisper will transcribe audio from. Default:
-                English
+                {t(
+                  "Language that Whisper will transcribe audio from. Default: English",
+                )}
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="summary-language">Summary Output Language</Label>
+              <Label htmlFor="summary-language">
+                {t("Summary Output Language")}
+              </Label>
               <Select
                 value={summaryLanguage}
                 onValueChange={handleSummaryLanguageChange}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select summary language" />
+                <SelectTrigger id="summary-language">
+                  <SelectValue placeholder={t("Select summary language")} />
                 </SelectTrigger>
                 <SelectContent>
                   {SUPPORTED_LANGUAGES.map((language) => (
                     <SelectItem key={language.code} value={language.code}>
-                      {language.name}
+                      {t(language.name)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <p className="text-sm text-muted-foreground">
-                Language that the AI model will use to generate summaries.
-                Default: English
+                {t(
+                  "Language that the AI model will use to generate summaries. Default: English",
+                )}
               </p>
             </div>
           </CardContent>

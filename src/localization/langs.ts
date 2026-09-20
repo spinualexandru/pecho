@@ -4,6 +4,7 @@ export default [
   {
     key: "en",
     nativeName: "English",
-    prefix: "EN-US",
+    prefix: "EN",
   },
+  { key: "ro", nativeName: "Română", prefix: "RO" },
 ] satisfies Language[];

@@ -34,5 +34,17 @@
       "tokenizer_config.json": 835,
       "preprocessor_config.json": 339
     }
+  },
+  "Xenova/whisper-tiny": {
+    "revision": "5332fcc35e32a33b86612b9a57a89be7906102b1",
+    "files": {
+      "config.json": 2248,
+      "onnx/encoder_model_quantized.onnx": 10124910,
+      "onnx/decoder_model_merged_quantized.onnx": 30727765,
+      "generation_config.json": 3716,
+      "tokenizer.json": 2480466,
+      "tokenizer_config.json": 282683,
+      "preprocessor_config.json": 339
+    }
   }
 }

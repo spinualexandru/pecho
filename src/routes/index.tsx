@@ -1,3 +1,4 @@
+import { LocalizedError } from "@/components/LocalizedError";
 import { ActiveWhisperProgress } from "@/components/WhisperModels";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -53,7 +54,7 @@ function HomePage() {
     error,
     isTranscribing,
   } = useRecording();
-  console.log("Hi", error);
+
   const {
     selectedModel,
     availableModels,
@@ -62,7 +63,7 @@ function HomePage() {
     selectModel,
     error: modelError,
   } = useModelSelection();
-  console.log(modelError);
+
   const [summary, setSummary] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingError, setProcessingError] = useState<string | null>(null);
@@ -145,20 +146,20 @@ function HomePage() {
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     const filename = `meeting-summary-${timestamp}.md`;
 
-    let content = "# Meeting Summary\n\n";
-    content += `**Date:** ${new Date().toLocaleString()}\n`;
-    content += `**Duration:** ${formatDuration(duration)}\n\n`;
+    let content = `# ${t("Meeting Summary")}\n\n`;
+    content += `**${t("Date")}:** ${new Date().toLocaleString()}\n`;
+    content += `**${t("Duration")}:** ${formatDuration(duration)}\n\n`;
 
-    content += "## Transcript\n\n";
+    content += `## ${t("Transcript")}\n\n`;
     content += transcript + "\n\n";
 
     if (summary) {
-      content += "## AI Summary\n\n";
+      content += `## ${t("AI Summary")}\n\n`;
       content += summary + "\n\n";
     }
 
     content += "---\n";
-    content += "*Generated with Personal Echo*\n";
+    content += `*${t("Generated with Personal Echo")}*\n`;
 
     // Create blob and download
     const blob = new Blob([content], { type: "text/markdown" });
@@ -197,7 +198,7 @@ function HomePage() {
             <div className="mt-8 flex flex-col items-center gap-4">
               <div className="flex flex-col items-center gap-2">
                 <label className="text-sm text-muted-foreground">
-                  Ollama Model
+                  {t("Ollama Model")}
                 </label>
                 <Select
                   value={selectedModel || ""}
@@ -209,10 +210,10 @@ function HomePage() {
                     <SelectValue
                       placeholder={
                         isLoadingModels
-                          ? "Loading models..."
+                          ? t("Loading models...")
                           : availableModels.length === 0
-                            ? "No models available"
-                            : "Select a model"
+                            ? t("No models available")
+                            : t("Select a model")
                       }
                     />
                   </SelectTrigger>
@@ -243,7 +244,7 @@ function HomePage() {
                   disabled={isProcessing || !selectedModel}
                 >
                   <Mic className="mr-2 h-5 w-5" />
-                  Voice Recording
+                  {t("Voice Recording")}
                 </Button>
                 <Button
                   size="lg"
@@ -252,25 +253,27 @@ function HomePage() {
                   disabled={isProcessing || !selectedModel}
                 >
                   <FileText className="mr-2 h-5 w-5" />
-                  Manual Input
+                  {t("Manual Input")}
                 </Button>
               </div>
               {!modelError && (
                 <p className="max-w-md text-center text-xs text-muted-foreground">
-                  Voice recording captures both your microphone and system audio
-                  (meeting participants)
+                  {t(
+                    "Voice recording captures both your microphone and system audio (meeting participants)",
+                  )}
                 </p>
               )}
               {!!modelError && (
-                <p className="max-w-md text-center text-xs text-red-400">
-                  {modelError}
-                </p>
+                <LocalizedError
+                  message="Could not load Ollama models. Check that Ollama is running."
+                  detail={modelError}
+                />
               )}
             </div>
             {error && (
               <div className="mt-4 flex items-center gap-2 text-destructive">
                 <AlertCircle className="h-4 w-4" />
-                <span className="text-sm">{error}</span>
+                <LocalizedError message={error.message} detail={error.detail} />
               </div>
             )}
           </div>
@@ -282,15 +285,15 @@ function HomePage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5" />
-                  Manual Transcript Input
+                  {t("Manual Transcript Input")}
                 </CardTitle>
                 <CardDescription>
-                  Type or paste your meeting transcript below
+                  {t("Type or paste your meeting transcript below")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Textarea
-                  placeholder="Enter your meeting transcript here..."
+                  placeholder={t("Enter your meeting transcript here...")}
                   className="min-h-[300px] resize-y"
                   value={manualInput}
                   onChange={(e) => setManualInput(e.target.value)}
@@ -300,14 +303,14 @@ function HomePage() {
                     variant="outline"
                     onClick={() => setUseManualMode(false)}
                   >
-                    Cancel
+                    {t("Cancel")}
                   </Button>
                   <Button
                     onClick={handleProcessManualInput}
                     disabled={!manualInput.trim() || isProcessing}
                   >
                     <Sparkles className="mr-2 h-4 w-4" />
-                    Generate Summary
+                    {t("Generate Summary")}
                   </Button>
                 </div>
               </CardContent>
@@ -323,11 +326,11 @@ function HomePage() {
                   <div className="space-y-1">
                     <CardTitle className="flex items-center gap-2">
                       <div className="h-3 w-3 animate-pulse rounded-full bg-destructive" />
-                      Recording in Progress
+                      {t("Recording in Progress")}
                     </CardTitle>
                     <CardDescription>
-                      {formatDuration(duration)} • Capturing microphone + system
-                      audio
+                      {formatDuration(duration)} •{" "}
+                      {t("Capturing microphone + system audio")}
                     </CardDescription>
                   </div>
                   <div className="flex gap-2">
@@ -338,7 +341,7 @@ function HomePage() {
                         onClick={pauseRecording}
                       >
                         <Pause className="mr-2 h-4 w-4" />
-                        Pause
+                        {t("Pause")}
                       </Button>
                     ) : (
                       <Button
@@ -347,7 +350,7 @@ function HomePage() {
                         onClick={resumeRecording}
                       >
                         <Play className="mr-2 h-4 w-4" />
-                        Resume
+                        {t("Resume")}
                       </Button>
                     )}
                     <Button
@@ -356,7 +359,7 @@ function HomePage() {
                       onClick={handleStopRecording}
                     >
                       <Square className="mr-2 h-4 w-4" />
-                      Stop
+                      {t("Stop")}
                     </Button>
                   </div>
                 </div>
@@ -364,7 +367,7 @@ function HomePage() {
               <CardContent>
                 <ScrollArea className="h-64 w-full rounded-md border p-4">
                   <p className="text-sm whitespace-pre-wrap text-muted-foreground">
-                    Recording audio... Stop to transcribe.
+                    {t("Recording audio... Stop to transcribe.")}
                   </p>
                 </ScrollArea>
               </CardContent>
@@ -378,10 +381,10 @@ function HomePage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Sparkles className="h-5 w-5 animate-pulse" />
-                  Transcribing Audio...
+                  {t("Transcribing Audio...")}
                 </CardTitle>
                 <CardDescription>
-                  Preparing the model and transcribing locally
+                  {t("Preparing the model and transcribing locally")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -402,15 +405,17 @@ function HomePage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Transcript</CardTitle>
+                    <CardTitle>{t("Transcript")}</CardTitle>
                     <CardDescription>
-                      Recorded {formatDuration(duration)}
+                      {t("Recorded {{duration}}", {
+                        duration: formatDuration(duration),
+                      })}
                     </CardDescription>
                   </div>
                   {!summary && !isProcessing && (
                     <Button onClick={handleGenerateSummary}>
                       <Sparkles className="mr-2 h-4 w-4" />
-                      Generate Summary
+                      {t("Generate Summary")}
                     </Button>
                   )}
                 </div>
@@ -427,7 +432,7 @@ function HomePage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Sparkles className="h-5 w-5 animate-pulse" />
-                    Generating Summary...
+                    {t("Generating Summary...")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -444,9 +449,9 @@ function HomePage() {
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
                       <Sparkles className="h-5 w-5" />
-                      AI Summary
+                      {t("AI Summary")}
                     </CardTitle>
-                    <Badge variant="secondary">Powered by Ollama</Badge>
+                    <Badge variant="secondary">{t("Powered by Ollama")}</Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -466,11 +471,14 @@ function HomePage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-destructive">
                     <AlertCircle className="h-5 w-5" />
-                    Error
+                    {t("Error")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-destructive">{processingError}</p>
+                  <LocalizedError
+                    message="Could not generate the summary. Please retry."
+                    detail={processingError}
+                  />
                 </CardContent>
               </Card>
             )}
@@ -478,16 +486,16 @@ function HomePage() {
             <div className="flex justify-center gap-4">
               <Button onClick={handleStartRecording} size="lg">
                 <Mic className="mr-2 h-5 w-5" />
-                New Recording
+                {t("New Recording")}
               </Button>
               <Button onClick={handleManualInput} size="lg" variant="outline">
                 <FileText className="mr-2 h-5 w-5" />
-                Manual Input
+                {t("Manual Input")}
               </Button>
               {transcript && (
                 <Button onClick={handleExport} size="lg" variant="outline">
                   <Download className="mr-2 h-5 w-5" />
-                  Export
+                  {t("Export")}
                 </Button>
               )}
             </div>

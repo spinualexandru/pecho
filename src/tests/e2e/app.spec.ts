@@ -40,7 +40,7 @@ test("opens the app, changes settings, and summarizes a manual transcript over I
     await expect(
       window.getByRole("heading", { name: "Settings", exact: true }),
     ).toBeVisible();
-    await window.getByRole("combobox").nth(2).click();
+    await window.getByLabel("Summary Output Language", { exact: true }).click();
     await window.getByRole("option", { name: "Romanian", exact: true }).click();
     await window.getByRole("link", { name: "Home", exact: true }).click();
     await window

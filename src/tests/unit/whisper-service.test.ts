@@ -22,7 +22,9 @@ vi.mock("@huggingface/transformers", () => ({
 vi.mock("electron", () => ({ app: { getPath: () => mocks.profile } }));
 const tiny = "Xenova/whisper-tiny.en";
 const base = "Xenova/whisper-base.en";
-async function seed(model: typeof tiny | typeof base = tiny) {
+async function seed(
+  model: typeof tiny | typeof base | "Xenova/whisper-tiny" = tiny,
+) {
   for (const [file, size] of Object.entries(manifest[model].files)) {
     const target = path.join(mocks.profile, "transformers", model, file);
     await mkdir(path.dirname(target), { recursive: true });
@@ -51,6 +53,28 @@ afterEach(async () => {
 });
 
 describe("Whisper model lifecycle", () => {
+  it("rejects unsupported language/model combinations before loading and explicitly transcribes multilingual audio", async () => {
+    const service = await import("@/services/whisper-service");
+    await expect(
+      service.transcribeAudio(new Float32Array(16000), tiny, "ro"),
+    ).rejects.toThrow("English-only");
+    await expect(
+      service.transcribeAudio(new Float32Array(16000), tiny, "xx"),
+    ).rejects.toThrow("Unsupported transcription language");
+    expect(mocks.pipeline).not.toHaveBeenCalled();
+    await seed("Xenova/whisper-tiny");
+    await service.transcribeAudio(
+      new Float32Array(16000),
+      "Xenova/whisper-tiny",
+      "ro",
+    );
+    expect(mocks.transcriber).toHaveBeenCalledWith(expect.any(Float32Array), {
+      return_timestamps: false,
+      language: "romanian",
+      task: "transcribe",
+    });
+  });
+
   it("detects an existing cache after restart and loads locally without any network", async () => {
     await seed();
     const fetch = vi.fn(() => {

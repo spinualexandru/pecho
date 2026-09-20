@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import {
   closeWindow,
   maximizeWindow,
@@ -31,10 +32,11 @@ export default function DragWindowRegion({ title }: DragWindowRegionProps) {
 }
 
 function WindowButtons() {
+  const { t } = useTranslation();
   return (
     <div className="flex">
       <button
-        title="Minimize"
+        title={t("Minimize")}
         type="button"
         className="p-2 hover:bg-slate-300"
         onClick={minimizeWindow}
@@ -50,7 +52,7 @@ function WindowButtons() {
         </svg>
       </button>
       <button
-        title="Maximize"
+        title={t("Maximize")}
         type="button"
         className="p-2 hover:bg-slate-300"
         onClick={maximizeWindow}
@@ -74,7 +76,7 @@ function WindowButtons() {
       </button>
       <button
         type="button"
-        title="Close"
+        title={t("Close")}
         className="p-2 hover:bg-red-300"
         onClick={closeWindow}
       >

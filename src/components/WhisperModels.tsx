@@ -1,3 +1,6 @@
+import { LocalizedError } from "./LocalizedError";
+import type { TranslationKey } from "@/localization/i18n";
+import { useTranslation } from "react-i18next";
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -9,7 +12,7 @@ import {
   type WhisperModelStatus,
 } from "@/helpers/whisper-helpers";
 
-const phases: Record<WhisperModelStatus["phase"], string> = {
+const phases: Record<WhisperModelStatus["phase"], TranslationKey | ""> = {
   idle: "",
   checking: "Checking files",
   downloading: "Downloading",
@@ -20,6 +23,9 @@ const phases: Record<WhisperModelStatus["phase"], string> = {
 };
 
 export function WhisperProgress({ model }: { model: WhisperModelStatus }) {
+  const { t } = useTranslation();
+  const phase = phases[model.phase];
+  const phaseLabel = phase ? t(phase) : "";
   const percent = model.progressTotalBytes
     ? Math.min(
         100,
@@ -29,13 +35,13 @@ export function WhisperProgress({ model }: { model: WhisperModelStatus }) {
   return (
     <div className="space-y-2" role="status">
       <p className="text-sm">
-        {phases[model.phase]}
+        {phaseLabel}
         {model.progressTotalBytes > 0 &&
           ` · ${percent}% · ${formatModelBytes(model.loadedBytes)} / ${formatModelBytes(model.progressTotalBytes)}`}
       </p>
       {(model.phase === "downloading" || model.phase === "loading") && (
         <Progress
-          aria-label={`${phases[model.phase]} progress`}
+          aria-label={t("Progress: {{phase}}", { phase: phaseLabel })}
           value={percent}
         />
       )}
@@ -56,6 +62,11 @@ export function WhisperModels({
 }: {
   selectedModel: WhisperModel;
 }) {
+  const { t } = useTranslation();
+  const modelName = (id: WhisperModel) =>
+    id === "Xenova/whisper-tiny"
+      ? t("Tiny multilingual")
+      : WHISPER_MODELS.find((item) => item.id === id)?.name;
   const { models, error } = useWhisperModels();
   const [pending, setPending] = useState<WhisperModel | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<WhisperModel | null>(null);
@@ -79,40 +90,53 @@ export function WhisperModels({
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        Download a model before a meeting to transcribe offline. Download sizes
-        include every required file.
+        {t(
+          "Download a model before a meeting to transcribe offline. Download sizes include every required file.",
+        )}
       </p>
       {(error || actionError) && (
-        <p role="alert" className="text-sm text-destructive">
-          {error || actionError}
-        </p>
+        <LocalizedError
+          message={
+            actionError
+              ? "Model operation failed. Check your connection and available disk space, then retry."
+              : "Could not read model cache."
+          }
+          detail={error || actionError}
+        />
       )}
-      {!models.length && !error && <p role="status">Checking model cache…</p>}
+      {!models.length && !error && (
+        <p role="status">{t("Checking model cache…")}</p>
+      )}
       {models.map((model) => (
         <section
           key={model.id}
-          aria-label={`${WHISPER_MODELS.find((item) => item.id === model.id)?.name} model cache`}
+          aria-label={t("{{name}} model cache", { name: modelName(model.id) })}
           className="space-y-3 rounded-md border p-3"
         >
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="font-medium">
-                {WHISPER_MODELS.find((item) => item.id === model.id)?.name}
-                {selectedModel === model.id && " · Selected"}
+                {modelName(model.id)}
+                {selectedModel === model.id && ` · ${t("Selected")}`}
               </p>
               <p className="text-sm text-muted-foreground">
-                {formatModelBytes(model.totalBytes)} total ·{" "}
+                {t("{{size}} total", {
+                  size: formatModelBytes(model.totalBytes),
+                })}{" "}
+                ·{" "}
                 {model.cached
                   ? model.phase === "error"
-                    ? "Cached files · See error below"
-                    : "Cached · Offline ready"
+                    ? t("Cached files · See error below")
+                    : t("Cached · Offline ready")
                   : model.cachedBytes
-                    ? "Partially downloaded"
-                    : "Not downloaded"}
+                    ? t("Partially downloaded")
+                    : t("Not downloaded")}
               </p>
               {!model.cached && (
                 <p className="text-sm text-muted-foreground">
-                  {formatModelBytes(model.remainingBytes)} to download
+                  {t("{{size}} to download", {
+                    size: formatModelBytes(model.remainingBytes),
+                  })}
                 </p>
               )}
             </div>
@@ -123,7 +147,7 @@ export function WhisperModels({
                   disabled={model.busy || pending !== null}
                   onClick={() => void run(model.id, "download")}
                 >
-                  {model.phase === "error" ? "Retry" : "Download"}
+                  {model.phase === "error" ? t("Retry") : t("Download")}
                 </Button>
               )}
               {(model.hasCache || model.phase === "error") && (
@@ -133,7 +157,7 @@ export function WhisperModels({
                   disabled={model.busy || pending !== null}
                   onClick={() => setConfirmDelete(model.id)}
                 >
-                  Delete
+                  {t("Delete")}
                 </Button>
               )}
             </div>
@@ -142,15 +166,20 @@ export function WhisperModels({
             <WhisperProgress model={model} />
           )}
           {model.error && (
-            <p className="text-sm text-destructive">{model.error}</p>
+            <LocalizedError
+              message="Model operation failed. Check your connection and available disk space, then retry."
+              detail={model.error}
+            />
           )}
           {confirmDelete === model.id && (
             <div className="space-y-2 text-sm">
               <p>
-                Delete this model’s downloaded files?{" "}
+                {t("Delete this model’s downloaded files?")}{" "}
                 {selectedModel === model.id
-                  ? "It stays selected and will need to be downloaded again before transcription."
-                  : "You can download it again later."}
+                  ? t(
+                      "It stays selected and will need to be downloaded again before transcription.",
+                    )
+                  : t("You can download it again later.")}
               </p>
               <div className="flex gap-2">
                 <Button
@@ -159,14 +188,14 @@ export function WhisperModels({
                   disabled={model.busy || pending !== null}
                   onClick={() => void run(model.id, "delete")}
                 >
-                  Delete files
+                  {t("Delete files")}
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setConfirmDelete(null)}
                 >
-                  Cancel
+                  {t("Cancel")}
                 </Button>
               </div>
             </div>

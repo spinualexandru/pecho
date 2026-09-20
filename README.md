@@ -35,7 +35,7 @@ npm run start
 
 ### First Run
 
-On the first transcription, the app downloads the selected Whisper model using [Hugging Face Transformers.js](https://github.com/huggingface/transformers.js). Models run on the CPU with 8-bit quantization and are cached in Electron’s user-data directory under `transformers/`, so later transcriptions work offline. The existing `.en` model choices support English transcription; the summary language setting controls Ollama’s output. Models previously cached under `.cache/transformers` will be downloaded once into the new location.
+On the first transcription, the app downloads the selected Whisper model using [Hugging Face Transformers.js](https://github.com/huggingface/transformers.js). Models run on the CPU with 8-bit quantization and are cached in Electron’s user-data directory under `transformers/`, so later transcriptions work offline. Tiny, Base, and Small `.en` choices support English transcription. Tiny multilingual supports all thirteen transcription languages offered in Settings; choosing a non-English language selects it automatically. The summary language setting independently controls Ollama’s output. Models previously cached under `.cache/transformers` will be downloaded once into the new location.
 
 ## 📖 Usage
 
@@ -85,6 +85,27 @@ node scripts/check-whisper-packaged.cjs
 ```
 
 This launches the hardened packaged binary with an isolated profile. It verifies a genuine offline download failure and Retry control, then retries after restarting online and downloads Tiny (42,985,755 bytes). A final restart inside a network namespace with no external network verifies cached discovery, actual CPU Whisper inference, and deletion of the loaded model through the UI. The check removes its temporary profile and saves `.cache/whisper-models.png`. Same-process failure/retry, partial cleanup, concurrent deletion/inference protection, and disposal failure recovery are covered by unit tests. The real-model check currently covers Tiny on Linux; Base, Small, and packaged macOS/Windows inference are not exercised by it.
+
+### Language settings and verification
+
+**Settings → Languages** separates the interface (English or Romanian), spoken transcription language, and summary output language. Each preference persists independently. Missing or invalid language preferences fall back to English; invalid model IDs fall back to Tiny English, or Tiny multilingual when the transcription language requires it. Existing non-English preferences paired with an English-only model migrate to Tiny multilingual. English-only options stay disabled for non-English transcription, and the main-process API rejects unsupported language/model combinations before downloading or inference. Recording captures its model and language when it starts, so changing Settings while recording cannot reinterpret that recording.
+
+Tiny multilingual adds a pinned 43,622,127-byte CPU/q8 checkpoint. It explicitly uses Whisper's `transcribe` task and selected language, preserving the source language instead of translating to English. All thirteen language choices are retained for summaries; actual summary quality depends on the selected Ollama model. Tiny prioritizes speed and size; support for a language does not guarantee accurate recognition for every speaker or recording.
+
+Interface strings, loading states, model cache actions, errors, window controls, and exported Markdown headings have typed English/Romanian translations. Technical errors from Electron, the OS, or remote services remain available under a translated **Technical details** disclosure. Transcription and generated summary content retain their independently selected languages.
+
+Run the opt-in packaged language check on Linux with a display and `ffmpeg`:
+
+```bash
+npm run package
+node scripts/check-languages-packaged.cjs
+# Keep the isolated profile, fixtures and downloaded checkpoints for subsequent checks:
+PECHO_LANGUAGE_PROFILE=.cache/language-profile node scripts/check-languages-packaged.cjs
+```
+
+The check downloads public `jfk.wav` and `french-audio.wav` fixtures from [Xenova/transformers.js-docs at revision fbe92bd](https://huggingface.co/datasets/Xenova/transformers.js-docs/tree/fbe92bd97d48f3ec17779d8d8f2964e1c6bc7634), converts them to mono 16 kHz float audio with ffmpeg, and uses the real packaged IPC and native inference with the models/languages selected in Settings. Audio is not bundled or redistributed in this repository; the source dataset does not declare a dataset-wide license. The French reference is the "Transcribe French" example in Transformers.js's automatic speech recognition documentation/source. On the validated Linux run, Tiny English returned "And so my fellow Americans ask not what your country can do for you, ask what you can do for your country." Tiny multilingual returned "J'adore, j'aime, je n'aime pas, je déteste." Assertions check recognizable phrases, not just nonempty output. These two short fixtures verify language routing, not meeting-quality accuracy or all thirteen languages.
+
+The same check verifies English-only rejection over IPC, automatic multilingual selection, disabled incompatible choices, Romanian navigation, and independent preferences across a full restart. It saves `.cache/languages-romanian-home.png` and `.cache/languages-romanian-settings.png`. Unit tests cover all language/model compatibility pairs, invalid settings, translation key parity, and explicit Whisper generation options. Packaged macOS/Windows language behavior and real non-English Ollama output are not covered by this check.
 
 ### Dependency maintenance
 
