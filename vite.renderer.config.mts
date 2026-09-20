@@ -5,6 +5,12 @@ import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import { defineConfig } from "vite";
 
+// Native compilation wins the local benchmark; Babel remains a tested fallback.
+const compiler = process.env.PECHO_REACT_COMPILER ?? "oxc";
+if (compiler !== "babel" && compiler !== "oxc") {
+  throw new Error(`Unknown PECHO_REACT_COMPILER: ${compiler}`);
+}
+
 export default defineConfig({
   plugins: [
     tanstackRouter({
@@ -12,8 +18,9 @@ export default defineConfig({
       autoCodeSplitting: true,
     }),
     tailwindcss(),
-    react(),
-    babel({ presets: [reactCompilerPreset()] }),
+    ...(compiler === "oxc"
+      ? [react({ compiler: { logDiagnostics: true } })]
+      : [react(), babel({ presets: [reactCompilerPreset()] })]),
   ],
   resolve: {
     preserveSymlinks: true,

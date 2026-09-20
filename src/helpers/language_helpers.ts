@@ -11,7 +11,11 @@ export function getAppLanguage(): InterfaceLanguage {
 export function setAppLanguage(lang: string, i18n: i18n) {
   if (lang !== "en" && lang !== "ro") return;
   localStorage.setItem(languageLocalStorageKey, lang);
-  void i18n.changeLanguage(lang);
+  i18n
+    .changeLanguage(lang)
+    .catch((error) =>
+      console.error("Could not change interface language", error),
+    );
   document.documentElement.lang = lang;
 }
 

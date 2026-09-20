@@ -42,9 +42,14 @@ export class DesktopProgress {
       } catch {
         /* The operation itself reports errors in the app. */
       }
-      if (active && this.jobs.has(id)) timer = setTimeout(poll, 500);
+      if (active && this.jobs.has(id)) timer = setTimeout(schedulePoll, 500);
     };
-    if (progress) void poll();
+    function schedulePoll() {
+      poll().catch(() => {
+        /* Optional native progress must not reject the job. */
+      });
+    }
+    if (progress) schedulePoll();
     try {
       return await task();
     } finally {

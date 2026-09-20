@@ -1,9 +1,15 @@
-export async function minimizeWindow() {
-  await window.electronWindow.minimize();
+export function minimizeWindow() {
+  window.electronWindow
+    .minimize()
+    .catch((error) => console.error("Could not minimize window", error));
 }
-export async function maximizeWindow() {
-  await window.electronWindow.maximize();
+export function maximizeWindow() {
+  window.electronWindow
+    .maximize()
+    .catch((error) => console.error("Could not maximize window", error));
 }
-export async function closeWindow() {
-  await window.electronWindow.close();
+export function closeWindow() {
+  window.electronWindow
+    .close()
+    .catch((error) => console.error("Could not close window", error));
 }

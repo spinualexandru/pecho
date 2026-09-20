@@ -5,7 +5,9 @@ import { createServer } from "node:http";
 import os from "node:os";
 import path from "node:path";
 
-test("real Electron IPC and HTTP streaming handle availability, structured results, failures and cancellation", async () => {
+test("real Electron IPC and HTTP streaming handle availability, structured results, failures and cancellation", async ({
+  browserName: _browserName,
+}, testInfo) => {
   test.setTimeout(90_000);
   let availability: "unavailable" | "empty" | "ready" = "unavailable";
   let generation:
@@ -17,93 +19,107 @@ test("real Electron IPC and HTTP streaming handle availability, structured resul
     | "slow" = "valid";
   let canceledConnections = 0;
   const requests: Record<string, unknown>[] = [];
-  const server = createServer(async (req, res) => {
-    if (availability === "unavailable") {
-      res.destroy();
-      return;
-    }
-    if (req.url === "/api/version") {
-      res.end(JSON.stringify({ version: "fixture-1" }));
-      return;
-    }
-    if (req.url === "/api/tags") {
-      res.end(
-        JSON.stringify({
-          models:
-            availability === "empty"
-              ? []
-              : [
-                  {
-                    name: "fixture-model",
-                    modified_at: "2026-09-20",
-                    size: 1024,
-                  },
-                ],
-        }),
-      );
-      return;
-    }
-    if (req.url !== "/api/chat") {
-      res.writeHead(404).end();
-      return;
-    }
-    let body = "";
-    for await (const chunk of req) body += chunk.toString();
-    requests.push(JSON.parse(body));
-    const mode = generation;
-    let timer: ReturnType<typeof setTimeout>;
-    res.on("close", () => {
-      clearTimeout(timer);
-      if (!res.writableEnded) canceledConnections++;
-    });
-    if (mode === "error") {
-      res.end('{"error":"fixture generation failure"}\n');
-      return;
-    }
-    const output =
-      mode === "malformed"
-        ? '{"summary":"Missing required fields"}'
-        : JSON.stringify({
-            summary: "Am decis să livrăm vineri. 🚀",
-            decisions: ["Livrare vineri"],
-            actionItems: [
-              { task: "Pregătește lansarea", owner: "Alex", dueDate: "Vineri" },
-            ],
-          });
-    const send = () => {
-      res.writeHead(200, { "Content-Type": "application/x-ndjson" });
-      res.write(
-        JSON.stringify({
-          message: { content: output.slice(0, 25) },
-          done: false,
-        }) + "\n",
-      );
-      timer = setTimeout(
-        () => {
-          res.end(
-            JSON.stringify({
-              message: { content: output.slice(25) },
-              done: mode !== "interrupted",
-            }),
-          );
-        },
-        mode === "slow" ? 5000 : 250,
-      );
+  const server = createServer((req, res) => {
+    const respond = async () => {
+      if (availability === "unavailable") {
+        res.destroy();
+        return;
+      }
+      if (req.url === "/api/version") {
+        res.end(JSON.stringify({ version: "fixture-1" }));
+        return;
+      }
+      if (req.url === "/api/tags") {
+        res.end(
+          JSON.stringify({
+            models:
+              availability === "empty"
+                ? []
+                : [
+                    {
+                      name: "fixture-model",
+                      modified_at: "2026-09-20",
+                      size: 1024,
+                    },
+                  ],
+          }),
+        );
+        return;
+      }
+      if (req.url !== "/api/chat") {
+        res.writeHead(404).end();
+        return;
+      }
+      let body = "";
+      for await (const chunk of req) body += chunk.toString();
+      requests.push(JSON.parse(body));
+      const mode = generation;
+      let timer: ReturnType<typeof setTimeout>;
+      res.on("close", () => {
+        clearTimeout(timer);
+        if (!res.writableEnded) canceledConnections++;
+      });
+      if (mode === "error") {
+        res.end('{"error":"fixture generation failure"}\n');
+        return;
+      }
+      const output =
+        mode === "malformed"
+          ? '{"summary":"Missing required fields"}'
+          : JSON.stringify({
+              summary: "Am decis să livrăm vineri. 🚀",
+              decisions: ["Livrare vineri"],
+              actionItems: [
+                {
+                  task: "Pregătește lansarea",
+                  owner: "Alex",
+                  dueDate: "Vineri",
+                },
+              ],
+            });
+      const send = () => {
+        res.writeHead(200, { "Content-Type": "application/x-ndjson" });
+        res.write(
+          JSON.stringify({
+            message: { content: output.slice(0, 25) },
+            done: false,
+          }) + "\n",
+        );
+        timer = setTimeout(
+          () => {
+            res.end(
+              JSON.stringify({
+                message: { content: output.slice(25) },
+                done: mode !== "interrupted",
+              }),
+            );
+          },
+          mode === "slow" ? 5000 : 250,
+        );
+      };
+      if (mode === "delayed") timer = setTimeout(send, 5000);
+      else send();
     };
-    if (mode === "delayed") timer = setTimeout(send, 5000);
-    else send();
+    respond().catch((error: unknown) =>
+      res.destroy(error instanceof Error ? error : new Error(String(error))),
+    );
   });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
   if (!address || typeof address === "string")
     throw new Error("Missing fixture port");
   const profile = await mkdtemp(path.join(os.tmpdir(), "pecho-e2e-"));
-  const app = await launchPackaged(profile, {
-    ...process.env,
-    NODE_ENV: "test",
-    OLLAMA_HOST: `127.0.0.1:${address.port}/`,
-  });
+  let app: Awaited<ReturnType<typeof launchPackaged>> | undefined;
   try {
+    app = await launchPackaged(
+      profile,
+      {
+        ...process.env,
+        NODE_ENV: "test",
+        OLLAMA_HOST: `127.0.0.1:${address.port}/`,
+      },
+      testInfo,
+    );
     const window = await app.firstWindow();
     const errors: string[] = [];
     window.on("pageerror", (error) => errors.push(error.message));
@@ -266,7 +282,7 @@ test("real Electron IPC and HTTP streaming handle availability, structured resul
     expect(invalid).toEqual(["rejected", "rejected", "rejected", "rejected"]);
     expect(errors).toEqual([]);
   } finally {
-    await app.close();
+    await app?.close();
     server.closeAllConnections();
     await new Promise<void>((resolve) => server.close(() => resolve()));
     await rm(profile, { recursive: true, force: true });

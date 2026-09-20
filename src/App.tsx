@@ -14,7 +14,9 @@ export default function App() {
   const { i18n } = useTranslation();
 
   useEffect(() => {
-    syncThemeWithLocal();
+    syncThemeWithLocal().catch((error) =>
+      console.error("Could not restore theme", error),
+    );
     updateAppLanguage(i18n);
   }, [i18n]);
 

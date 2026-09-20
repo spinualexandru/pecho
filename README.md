@@ -61,7 +61,7 @@ npm run start        # Development mode
 npm run package      # Package app
 npm run make         # Generate distributables
 npm run typecheck    # Generate routes, build renderer, and check with TypeScript 7
-npm run lint         # Oxlint, including React Compiler and hooks rules
+npm run lint         # Type-aware Oxlint, async safety, React Compiler and hooks rules
 npm run format       # Check formatting with Oxfmt
 npm run format:write # Format code and sort Tailwind classes
 npm test             # Service and React hook tests
@@ -146,4 +146,10 @@ Meeting capture, transcription, the manual draft and summary generation belong t
 
 The main window uses Electron 44's [named window state persistence](https://www.electronjs.org/docs/latest/tutorial/window-state-persistence) for bounds and display mode, including Electron's built-in adjustment to changed displays. Wayland compositors control placement and may restrict resizing/restoration. Native progress covers model download, transcription and summary jobs, clearing on completion, failure or cancellation. [Electron 44 supports Linux LauncherEntry docks](https://www.electronjs.org/blog/electron-44-0); desktops without that integration still show progress inside the application.
 
-`npm run test:e2e` packages and launches the packaged Linux executable. The desktop test uses an oscillator-backed synthetic MediaStream, never a live microphone, to check navigation during recording, preserved drafts and reduced motion. The HTTP fixture checks navigation during summary streaming. The geometry test loads the packaged ASAR using the installed Electron binary and an isolated Ozone headless display to inspect native bounds across relaunch; the UI tests attach through Chromium CDP to the hardened shipped executable. Native macOS/Windows dock presentation and physical monitor hot-plugging require platform testing.
+`npm run test:e2e` packages and launches the executable for the current platform and architecture. The desktop test uses an oscillator-backed synthetic MediaStream, never a live microphone, to check navigation during recording, preserved drafts and reduced motion. The HTTP fixture checks navigation during summary streaming. The geometry test loads the packaged ASAR using the installed Electron binary and an isolated Ozone headless display to inspect native bounds across relaunch; the UI tests attach through Chromium CDP to the hardened shipped executable. Native macOS/Windows dock presentation and physical monitor hot-plugging require platform testing.
+
+### Reproducible checks and compiler benchmark
+
+`npm run check` runs formatting, the production renderer build, TS7, type-aware Oxlint and unit tests. `npm run test:e2e:packaged` tests an existing package without rebuilding it. The GitHub Actions matrix configures Linux, Windows and macOS checks; local validation currently covers Linux only.
+
+The renderer now uses the experimental native Oxc React Compiler after a measured 47% median build-time reduction and passing packaged UI tests for both compiler paths. Babel remains available through `PECHO_REACT_COMPILER=babel`. Run `npm run bench:compiler` to repeat the comparison. [The evaluation report](docs/modernization-checks.md) records timings, output sizes, optimizer skips, validation evidence and platform limits.

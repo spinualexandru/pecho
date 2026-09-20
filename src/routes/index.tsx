@@ -90,15 +90,17 @@ function HomePage() {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const handleStartRecording = async () => {
+  const handleStartRecording = () => {
     if (isStarting || isTranscribing || isRecording) return;
     resetSummary();
     setUseManualMode(false);
-    await startRecording();
+    startRecording().catch((error) =>
+      console.error("Unexpected recording failure", error),
+    );
   };
 
-  const handleStopRecording = async () => {
-    await stopRecording();
+  const handleStopRecording = () => {
+    stopRecording();
     // Transcription happens automatically in useRecording.
   };
 

@@ -92,13 +92,13 @@ it("serializes double starts/stops and releases mixing/decoding contexts and tra
       result.current.startRecording(),
     ]);
   });
-  expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledTimes(1);
+  expect(
+    vi.spyOn(navigator.mediaDevices, "getUserMedia"),
+  ).toHaveBeenCalledTimes(1);
   expect(result.current.isRecording).toBe(true);
   await act(async () => {
-    await Promise.all([
-      result.current.stopRecording(),
-      result.current.stopRecording(),
-    ]);
+    result.current.stopRecording();
+    result.current.stopRecording();
   });
   await waitFor(() =>
     expect(result.current.transcript).toBe("meeting transcript"),
@@ -113,7 +113,7 @@ it("serializes double starts/stops and releases mixing/decoding contexts and tra
   unmount();
 });
 it("releases allocated resources on microphone denial and can retry", async () => {
-  vi.mocked(navigator.mediaDevices.getUserMedia).mockRejectedValueOnce(
+  vi.spyOn(navigator.mediaDevices, "getUserMedia").mockRejectedValueOnce(
     new Error("denied"),
   );
   const { result } = renderHook(useRecording);
@@ -126,7 +126,7 @@ it("releases allocated resources on microphone denial and can retry", async () =
 });
 it("stops a late microphone stream after provider unmount without starting capture", async () => {
   let resolve!: (value: MediaStream) => void;
-  vi.mocked(navigator.mediaDevices.getUserMedia).mockReturnValue(
+  vi.spyOn(navigator.mediaDevices, "getUserMedia").mockReturnValue(
     new Promise((done) => {
       resolve = done;
     }),
@@ -146,7 +146,9 @@ it("stops a late microphone stream after provider unmount without starting captu
     true,
   );
   expect(recorders).toHaveLength(0);
-  expect(navigator.mediaDevices.getDisplayMedia).not.toHaveBeenCalled();
+  expect(
+    vi.spyOn(navigator.mediaDevices, "getDisplayMedia"),
+  ).not.toHaveBeenCalled();
 });
 it("provider unmount stops active recording without submitting transcription", async () => {
   const { result, unmount } = renderHook(useRecording);
@@ -160,7 +162,7 @@ it("provider unmount stops active recording without submitting transcription", a
   );
 });
 it("retains the previous transcript when starting capture fails", async () => {
-  vi.mocked(navigator.mediaDevices.getUserMedia).mockRejectedValueOnce(
+  vi.spyOn(navigator.mediaDevices, "getUserMedia").mockRejectedValueOnce(
     new Error("denied"),
   );
   const { result } = renderHook(useRecording);
@@ -191,7 +193,7 @@ it("keeps pending transcription and draft when the route consumer unmounts", asy
   const { rerender, getByText } = render(tree(true));
   act(() => meeting.setManualInput("Preserved draft"));
   await act(() => meeting.recording.startRecording());
-  await act(() => meeting.recording.stopRecording());
+  act(() => meeting.recording.stopRecording());
   await waitFor(() =>
     expect(window.recording.transcribeAudio).toHaveBeenCalledOnce(),
   );
@@ -201,4 +203,20 @@ it("keeps pending transcription and draft when the route consumer unmounts", asy
   expect(getByText("Finished while in Settings")).toBeVisible();
   expect(meeting.manualInput).toBe("Preserved draft");
   expect(meeting.recording.isTranscribing).toBe(false);
+});
+
+it("releases the decoder after rejected transcription and allows a new recording", async () => {
+  vi.mocked(window.recording.transcribeAudio).mockRejectedValueOnce(
+    new Error("worker unavailable"),
+  );
+  const { result } = renderHook(useRecording);
+  await act(() => result.current.startRecording());
+  act(() => result.current.stopRecording());
+  await waitFor(() =>
+    expect(result.current.error?.detail).toContain("worker unavailable"),
+  );
+  expect(result.current.isTranscribing).toBe(false);
+  expect(contexts.every((context) => context.state === "closed")).toBe(true);
+  await act(() => result.current.startRecording());
+  expect(result.current.isRecording).toBe(true);
 });

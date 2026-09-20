@@ -65,7 +65,9 @@ describe("independent language preferences", () => {
     );
   });
   it("persists independent preferences and sets document language on restart", () => {
-    const instance = { changeLanguage: vi.fn() } as unknown as i18n;
+    const instance = {
+      changeLanguage: vi.fn().mockResolvedValue(undefined),
+    } as unknown as i18n;
     setTranscriberLanguage("fr");
     setSummaryLanguage("ja");
     setAppLanguage("ro", instance);

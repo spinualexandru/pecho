@@ -17,12 +17,15 @@ declare module "i18next" {
   }
 }
 
-void i18n.use(initReactI18next).init({
-  lng: getAppLanguage(),
-  fallbackLng: "en",
-  supportedLngs: ["en", "ro"],
-  keySeparator: false,
-  nsSeparator: false,
-  interpolation: { escapeValue: false },
-  resources: { en: { translation: en }, ro: { translation: romanian } },
-});
+i18n
+  .use(initReactI18next)
+  .init({
+    lng: getAppLanguage(),
+    fallbackLng: "en",
+    supportedLngs: ["en", "ro"],
+    keySeparator: false,
+    nsSeparator: false,
+    interpolation: { escapeValue: false },
+    resources: { en: { translation: en }, ro: { translation: romanian } },
+  })
+  .catch((error) => console.error("Could not initialize translations", error));

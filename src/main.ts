@@ -10,7 +10,7 @@ import {
 
 const inDevelopment = process.env.NODE_ENV === "development";
 
-function createWindow() {
+async function createWindow() {
   const preload = path.join(__dirname, "preload.js");
   const mainWindow = new BrowserWindow({
     name: "personal-echo-main",
@@ -31,9 +31,9 @@ function createWindow() {
   });
 
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+    await mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
   } else {
-    mainWindow.loadFile(
+    await mainWindow.loadFile(
       path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
     );
   }
@@ -52,10 +52,14 @@ app
   .whenReady()
   .then(() => {
     registerListeners();
-    createWindow();
+    return createWindow();
   })
   .then(() => {
     if (inDevelopment) return installExtensions();
+  })
+  .catch((error) => {
+    console.error("Failed to start Personal Echo", error);
+    app.quit();
   });
 
 //osX only
@@ -67,7 +71,10 @@ app.on("window-all-closed", () => {
 
 app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
+    createWindow().catch((error) => {
+      console.error("Failed to open Personal Echo", error);
+      app.quit();
+    });
   }
 });
 //osX only ends

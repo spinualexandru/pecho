@@ -1,16 +1,16 @@
-import { launchPackaged } from "./packaged-app";
+import { launchPackaged, packagedAsar } from "./packaged-app";
 import { test, expect, _electron as electron } from "@playwright/test";
 import { mkdtemp, rm, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-const packagedApp = path.resolve(
-  "out/Personal Echo-linux-x64/resources/app.asar",
-);
 
-test("packaged meeting draft, synthetic recording and reduced motion survive route navigation", async () => {
+test("packaged meeting draft, synthetic recording and reduced motion survive route navigation", async ({
+  browserName: _browserName,
+}, testInfo) => {
   const profile = await mkdtemp(path.join(os.tmpdir(), "pecho-desktop-"));
-  const app = await launchPackaged(profile);
+  let app: Awaited<ReturnType<typeof launchPackaged>> | undefined;
   try {
+    app = await launchPackaged(profile, process.env, testInfo);
     const page = await app.firstWindow();
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page
@@ -78,7 +78,7 @@ test("packaged meeting draft, synthetic recording and reduced motion survive rou
     await page.screenshot({ path: ".cache/desktop-recording.png" });
     // Closing the app releases capture; do not stop/submit fake audio to Whisper.
   } finally {
-    await app.close();
+    await app?.close();
     await rm(profile, { recursive: true, force: true });
   }
 });
@@ -92,7 +92,7 @@ test("packaged window restores named geometry across relaunch", async () => {
   const launch = (screen = "1280,800") =>
     electron.launch({
       args: [
-        packagedApp,
+        packagedAsar,
         `--user-data-dir=${profile}`,
         "--ozone-platform=headless",
         `--ozone-override-screen-size=${screen}`,
@@ -158,7 +158,7 @@ test("packaged window restores named geometry across relaunch", async () => {
       adjusted.workArea.y + adjusted.workArea.height,
     );
   } finally {
-    await app.close();
+    await app?.close();
     await rm(profile, { recursive: true, force: true });
   }
 });

@@ -24,10 +24,15 @@ export function useWhisperModels() {
               : "Could not read model cache",
           );
       } finally {
-        if (!cancelled) timer = setTimeout(refresh, 500);
+        if (!cancelled) timer = setTimeout(scheduleRefresh, 500);
       }
     };
-    void refresh();
+    function scheduleRefresh() {
+      refresh().catch((reason) => {
+        if (!cancelled) setError(String(reason));
+      });
+    }
+    scheduleRefresh();
     return () => {
       cancelled = true;
       clearTimeout(timer);

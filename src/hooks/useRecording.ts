@@ -206,7 +206,7 @@ export function useRecording() {
     }
   }, []);
 
-  const stopRecording = useCallback(async () => {
+  const stopRecording = useCallback(() => {
     const capture = captureRef.current;
     if (!capture?.recorder || capture.recorder.state === "inactive") return;
     // The busy guard stays held until transcription settles.

@@ -56,7 +56,7 @@ function Settings() {
         setIsDarkMode(local === "dark");
       }
     };
-    loadTheme();
+    loadTheme().catch((error) => console.error("Could not read theme", error));
   }, []);
 
   const handleThemeToggle = async (checked: boolean) => {
@@ -107,7 +107,12 @@ function Settings() {
               <Switch
                 id="theme-toggle"
                 checked={isDarkMode}
-                onCheckedChange={handleThemeToggle}
+                onCheckedChange={(checked) => {
+                  handleThemeToggle(checked).catch((error) => {
+                    setIsDarkMode(!checked);
+                    console.error("Could not change theme", error);
+                  });
+                }}
               />
             </div>
           </CardContent>
