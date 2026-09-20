@@ -35,11 +35,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 function Settings() {
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [whisperModel, setWhisperModelState] = useState<WhisperModel>(
-    "Xenova/whisper-tiny.en",
+  const [whisperModel, setWhisperModelState] =
+    useState<WhisperModel>(getWhisperModel);
+  const [transcriberLanguage, setTranscriberLanguageState] = useState(
+    getTranscriberLanguage,
   );
-  const [transcriberLanguage, setTranscriberLanguageState] = useState("en");
-  const [summaryLanguage, setSummaryLanguageState] = useState("en");
+  const [summaryLanguage, setSummaryLanguageState] =
+    useState(getSummaryLanguage);
 
   useEffect(() => {
     const loadTheme = async () => {
@@ -49,11 +51,6 @@ function Settings() {
       }
     };
     loadTheme();
-
-    // Load preferences
-    setWhisperModelState(getWhisperModel());
-    setTranscriberLanguageState(getTranscriberLanguage());
-    setSummaryLanguageState(getSummaryLanguage());
   }, []);
 
   const handleThemeToggle = async (checked: boolean) => {
@@ -92,7 +89,7 @@ function Settings() {
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label htmlFor="theme-toggle">Dark Mode</Label>
-                <p className="text-muted-foreground text-sm">
+                <p className="text-sm text-muted-foreground">
                   Toggle between light and dark theme
                 </p>
               </div>
@@ -130,7 +127,7 @@ function Settings() {
                     <SelectItem key={model.id} value={model.id}>
                       <div className="flex flex-col text-left">
                         <span className="font-medium">{model.name}</span>
-                        <span className="text-muted-foreground text-sm">
+                        <span className="text-sm text-muted-foreground">
                           {model.description} • {model.size}
                         </span>
                       </div>
@@ -138,7 +135,7 @@ function Settings() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-muted-foreground text-sm">
+              <p className="text-sm text-muted-foreground">
                 Choose the Whisper model for audio transcription. Larger models
                 provide better accuracy but require more memory and processing
                 time.
@@ -174,7 +171,7 @@ function Settings() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-muted-foreground text-sm">
+              <p className="text-sm text-muted-foreground">
                 Language that Whisper will transcribe audio from. Default:
                 English
               </p>
@@ -197,7 +194,7 @@ function Settings() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-muted-foreground text-sm">
+              <p className="text-sm text-muted-foreground">
                 Language that the AI model will use to generate summaries.
                 Default: English
               </p>

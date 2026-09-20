@@ -1,4 +1,6 @@
 import { useState, useRef, useCallback } from "react";
+import { getWhisperModel } from "@/helpers/whisper-helpers";
+import { getTranscriberLanguage } from "@/helpers/language-helpers";
 
 interface UseRecordingReturn {
   isRecording: boolean;
@@ -29,6 +31,46 @@ export function useRecording(): UseRecordingReturn {
   const audioChunksRef = useRef<Blob[]>([]);
   const audioContextRef = useRef<AudioContext | null>(null);
   const mixedStreamRef = useRef<MediaStream | null>(null);
+
+  const processAudioBlob = useCallback(async (audioBlob: Blob) => {
+    try {
+      setIsTranscribing(true);
+      setError(null);
+
+      // Create audio context
+      const audioContext = new AudioContext({ sampleRate: 16000 });
+      audioContextRef.current = audioContext;
+
+      // Convert blob to array buffer
+      const arrayBuffer = await audioBlob.arrayBuffer();
+
+      // Decode audio data
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+      // Get audio channel data (mono)
+      const channelData = audioBuffer.getChannelData(0);
+
+      // Send to main process for transcription
+      const transcriptText = await window.recording.transcribeAudio(
+        new Float32Array(channelData).buffer,
+        getWhisperModel(),
+        getTranscriberLanguage(),
+      );
+
+      setTranscript(transcriptText);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to transcribe audio";
+      setError(errorMessage);
+      console.error("Transcription error:", err);
+    } finally {
+      setIsTranscribing(false);
+      if (audioContextRef.current) {
+        await audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
+    }
+  }, []);
 
   const startRecording = useCallback(async () => {
     try {
@@ -129,45 +171,7 @@ export function useRecording(): UseRecordingReturn {
       setError(errorMessage);
       console.error("Recording error:", err);
     }
-  }, []);
-
-  const processAudioBlob = async (audioBlob: Blob) => {
-    try {
-      setIsTranscribing(true);
-      setError(null);
-
-      // Create audio context
-      const audioContext = new AudioContext({ sampleRate: 16000 });
-      audioContextRef.current = audioContext;
-
-      // Convert blob to array buffer
-      const arrayBuffer = await audioBlob.arrayBuffer();
-
-      // Decode audio data
-      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-      // Get audio channel data (mono)
-      const channelData = audioBuffer.getChannelData(0);
-
-      // Send to main process for transcription
-      const transcriptText = await window.recording.transcribeAudio(
-        channelData.buffer,
-      );
-
-      setTranscript(transcriptText);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to transcribe audio";
-      setError(errorMessage);
-      console.error("Transcription error:", err);
-    } finally {
-      setIsTranscribing(false);
-      if (audioContextRef.current) {
-        await audioContextRef.current.close();
-        audioContextRef.current = null;
-      }
-    }
-  };
+  }, [processAudioBlob]);
 
   const stopRecording = useCallback(async () => {
     if (

@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/select";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { getSummaryLanguage } from "@/helpers/language-helpers";
 
 function HomePage() {
   const { t } = useTranslation();
@@ -102,6 +103,7 @@ function HomePage() {
         const result = await window.recording.summarizeTranscript(
           manualInput,
           selectedModel,
+          getSummaryLanguage(),
         );
         setSummary(result);
         setUseManualMode(false);
@@ -124,6 +126,7 @@ function HomePage() {
         const result = await window.recording.summarizeTranscript(
           transcript,
           selectedModel,
+          getSummaryLanguage(),
         );
         setSummary(result);
       } catch (err) {
@@ -184,7 +187,7 @@ function HomePage() {
             <span>
               <h1 className="font-mono text-4xl font-bold">{t("appName")}</h1>
               <p
-                className="text-muted-foreground text-end text-sm uppercase"
+                className="text-end text-sm text-muted-foreground uppercase"
                 data-testid="pageTitle"
               >
                 {t("titleSlogan")}
@@ -192,7 +195,7 @@ function HomePage() {
             </span>
             <div className="mt-8 flex flex-col items-center gap-4">
               <div className="flex flex-col items-center gap-2">
-                <label className="text-muted-foreground text-sm">
+                <label className="text-sm text-muted-foreground">
                   Ollama Model
                 </label>
                 <Select
@@ -252,7 +255,7 @@ function HomePage() {
                 </Button>
               </div>
               {!modelError && (
-                <p className="text-muted-foreground max-w-md text-center text-xs">
+                <p className="max-w-md text-center text-xs text-muted-foreground">
                   Voice recording captures both your microphone and system audio
                   (meeting participants)
                 </p>
@@ -264,7 +267,7 @@ function HomePage() {
               )}
             </div>
             {error && (
-              <div className="text-destructive mt-4 flex items-center gap-2">
+              <div className="mt-4 flex items-center gap-2 text-destructive">
                 <AlertCircle className="h-4 w-4" />
                 <span className="text-sm">{error}</span>
               </div>
@@ -318,7 +321,7 @@ function HomePage() {
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <CardTitle className="flex items-center gap-2">
-                      <div className="bg-destructive h-3 w-3 animate-pulse rounded-full" />
+                      <div className="h-3 w-3 animate-pulse rounded-full bg-destructive" />
                       Recording in Progress
                     </CardTitle>
                     <CardDescription>
@@ -359,7 +362,7 @@ function HomePage() {
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-64 w-full rounded-md border p-4">
-                  <p className="text-muted-foreground text-sm whitespace-pre-wrap">
+                  <p className="text-sm whitespace-pre-wrap text-muted-foreground">
                     Recording audio... Stop to transcribe.
                   </p>
                 </ScrollArea>
@@ -382,7 +385,7 @@ function HomePage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-center py-8">
-                  <div className="border-primary h-8 w-8 animate-spin rounded-full border-4 border-t-transparent" />
+                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
                 </div>
               </CardContent>
             </Card>
@@ -425,7 +428,7 @@ function HomePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-center py-8">
-                    <div className="border-primary h-8 w-8 animate-spin rounded-full border-4 border-t-transparent" />
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
                   </div>
                 </CardContent>
               </Card>
@@ -444,7 +447,7 @@ function HomePage() {
                 </CardHeader>
                 <CardContent>
                   <ScrollArea className="h-64 w-full rounded-md border p-4">
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <div className="prose prose-sm max-w-none dark:prose-invert">
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {summary}
                       </ReactMarkdown>
@@ -457,13 +460,13 @@ function HomePage() {
             {processingError && (
               <Card className="border-destructive">
                 <CardHeader>
-                  <CardTitle className="text-destructive flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-destructive">
                     <AlertCircle className="h-5 w-5" />
                     Error
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-destructive text-sm">{processingError}</p>
+                  <p className="text-sm text-destructive">{processingError}</p>
                 </CardContent>
               </Card>
             )}

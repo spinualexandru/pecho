@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 const MODEL_STORAGE_KEY = "pecho-selected-model";
 
@@ -9,15 +9,8 @@ export function useModelSelection() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadModels();
-  }, []);
-
-  const loadModels = async () => {
+  const loadModels = useCallback(async () => {
     try {
-      setIsLoading(true);
-      setError(null);
-
       // Fetch available models from Ollama and GPU VRAM in parallel
       const [models, gpuInfo] = await Promise.all([
         window.recording.getOllamaModels(),
@@ -49,7 +42,13 @@ export function useModelSelection() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    // State updates follow asynchronous IPC; this effect synchronizes external models.
+    // oxlint-disable-next-line react/set-state-in-effect
+    void loadModels();
+  }, [loadModels]);
 
   const selectModel = (modelName: string) => {
     setSelectedModel(modelName);
@@ -57,6 +56,8 @@ export function useModelSelection() {
   };
 
   const refreshModels = () => {
+    setIsLoading(true);
+    setError(null);
     loadModels();
   };
 

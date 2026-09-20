@@ -1,23 +1,35 @@
-import { pipeline } from "@xenova/transformers";
-import { getWhisperModel, type WhisperModel } from "@/helpers/whisper-helpers";
 import {
-  getTranscriberLanguage,
-  getWhisperLanguageCode,
-} from "@/helpers/language-helpers";
+  pipeline,
+  env,
+  type AutomaticSpeechRecognitionPipeline,
+} from "@huggingface/transformers";
+import { app } from "electron";
+import path from "node:path";
+import type { WhisperModel } from "@/helpers/whisper-helpers";
+import { getWhisperLanguageCode } from "@/helpers/language-helpers";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let transcriber: any = null;
+let transcriber: AutomaticSpeechRecognitionPipeline | null = null;
 let currentModel: WhisperModel | null = null;
 
-export async function initializeWhisper() {
-  const modelId = getWhisperModel();
-
+export async function initializeWhisper(
+  modelId: WhisperModel = "Xenova/whisper-tiny.en",
+) {
+  // Some auxiliary model files use the global cache rather than pipeline options.
+  const cacheDir = path.join(app.getPath("userData"), "transformers");
+  env.cacheDir = cacheDir;
   // Reinitialize if model changed
   if (!transcriber || currentModel !== modelId) {
     console.log(`Loading Whisper model: ${modelId}...`);
+    if (transcriber) {
+      await transcriber.dispose();
+      transcriber = null;
+      currentModel = null;
+    }
     transcriber = await pipeline("automatic-speech-recognition", modelId, {
-      // Cache models locally
-      cache_dir: "./.cache/transformers",
+      device: "cpu",
+      dtype: "q8",
+      // Packaged apps may run from a read-only installation directory.
+      cache_dir: cacheDir,
     });
     currentModel = modelId;
     console.log("Whisper model loaded successfully");
@@ -27,18 +39,24 @@ export async function initializeWhisper() {
 
 export async function transcribeAudio(
   audioData: Float32Array,
+  modelId: WhisperModel = "Xenova/whisper-tiny.en",
+  languageCode: string = "en",
 ): Promise<string> {
   try {
-    const model = await initializeWhisper();
-    const language = getWhisperLanguageCode(getTranscriberLanguage());
+    const model = await initializeWhisper(modelId);
 
     const result = await model(audioData, {
       // Options for transcription
       return_timestamps: false,
-      language: language,
+      // English-only checkpoints do not accept multilingual language tokens.
+      ...(modelId.endsWith(".en")
+        ? {}
+        : { language: getWhisperLanguageCode(languageCode) }),
     });
 
-    return result.text;
+    return Array.isArray(result)
+      ? result.map((item) => item.text).join(" ")
+      : result.text;
   } catch (error) {
     console.error("Transcription error:", error);
     throw new Error(

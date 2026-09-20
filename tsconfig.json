@@ -4,9 +4,6 @@
     "target": "ESNext",
     "module": "ESNext",
     "lib": ["dom", "ESNext"],
-    "experimentalDecorators": true,
-    "composite": true,
-    "declaration": true,
     "forceConsistentCasingInFileNames": true,
     "allowJs": false,
     "esModuleInterop": true,
@@ -14,19 +11,21 @@
     "noImplicitAny": true,
     "sourceMap": true,
     "strict": true,
-    "baseUrl": ".",
+    "types": ["node"],
     "paths": {
       "@/*": ["./src/*"]
     },
     "outDir": "dist",
     "moduleResolution": "bundler",
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "noEmit": true
   },
   "include": [
     "src/**/*",
-    "./package.json",
-    "./forge.config.ts",
+    "forge.config.ts",
+    "forge.env.d.ts",
     "*.mts",
-    "vite.renderer.config.mts"
+    "playwright.config.ts"
   ]
 }

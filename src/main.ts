@@ -47,7 +47,12 @@ async function installExtensions() {
   }
 }
 
-app.whenReady().then(createWindow).then(installExtensions);
+app
+  .whenReady()
+  .then(createWindow)
+  .then(() => {
+    if (inDevelopment) return installExtensions();
+  });
 
 //osX only
 app.on("window-all-closed", () => {

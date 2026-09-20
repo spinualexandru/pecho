@@ -1,8 +1,5 @@
 import { Ollama } from "ollama";
-import {
-  getSummaryLanguage,
-  getLanguageName,
-} from "@/helpers/language-helpers";
+import { getLanguageName } from "@/helpers/language-helpers";
 
 const ollama = new Ollama({ host: "http://localhost:11434" });
 
@@ -31,9 +28,10 @@ export async function getAvailableModels(): Promise<OllamaModel[]> {
 export async function summarizeTranscript(
   transcript: string,
   model: string = "llama3.2",
+  languageCode: string = "en",
 ): Promise<string> {
   try {
-    const summaryLanguage = getLanguageName(getSummaryLanguage());
+    const summaryLanguage = getLanguageName(languageCode);
 
     const response = await ollama.chat({
       model: model,

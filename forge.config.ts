@@ -9,9 +9,15 @@ import { FuseV1Options, FuseVersion } from "@electron/fuses";
 
 const config: ForgeConfig = {
   packagerConfig: {
-    asar: true,
     // Exclude native modules from ASAR to prevent runtime errors
-    asarUnpack: "**/*.{node,dll,dylib,so}",
+    asar: { unpack: "**/*.{node,dll,dylib,so,so.*}" },
+    // Transformers stays external to Vite and needs its production dependencies.
+    // Forge prunes devDependencies after copying node_modules.
+    ignore: (file) =>
+      !!file &&
+      file !== "/package.json" &&
+      !file.startsWith("/.vite") &&
+      !file.startsWith("/node_modules"),
   },
   rebuildConfig: {},
   makers: [
